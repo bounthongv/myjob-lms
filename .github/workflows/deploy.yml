@@ -18,6 +18,7 @@ jobs:
           script_stop: true
           script: |
             cd /opt/myjob
-            git pull origin master
+            git fetch origin
+            git reset --hard origin/master
             cp /root/connect-myjob.php /opt/myjob/connect.php
             docker compose -f docker-compose.myjob.yml up --build -d
