@@ -1,0 +1,223 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@100..900&display=swap');
+
+/* การตั้งค่าพื้นฐาน */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Noto Sans Lao", serif;
+}
+
+body {
+    /* ตั้งค่าพื้นหลังสีเข้มเพื่อให้ Navigation Bar ที่เป็นสีเข้มดูโดดเด่น */
+    /* background-color: #1a1a2e;  */
+}
+
+/* ==================================== */
+/* 2. Navigation Bar Styles */
+/* ==================================== */
+
+.navbar-container {
+    width: 100%;
+    /* พื้นหลังเข้มทึบ */
+    background-color: #6f89af;
+    /* background-color: #1f2735;  */
+    box-shadow: 0 2px 10px rgb(117, 177, 211);
+    position: fixed;
+    /* ให้นำทางติดอยู่ด้านบนเสมอ */
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+.navbar-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 15px 0px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 2.1 โลโก้ */
+.navbar-logo {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+}
+
+.apis-icon {
+    margin-right: 8px;
+    fill: #00bfff;
+}
+
+/* 2.2 เมนูหลัก (สำหรับ Desktop) */
+.navbar-menu a {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 1rem;
+    padding: 0 15px;
+    transition: color 0.3s;
+}
+
+.navbar-menu a:hover {
+    color: #00bfff;
+}
+
+/* 2.3 ปุ่ม CTA */
+.cta-button {
+    background-color: red;
+    color: #ffffff;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-weight: 600;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+}
+
+.cta-button:hover {
+    background-color: rgb(250, 54, 54);
+    /* background-color: #0099cc; */
+}
+
+/* 2.4 ปุ่ม Hamburger (ซ่อนไว้สำหรับ Desktop) */
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+}
+
+/* 2.5 Drop-down Styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+    padding: 0 15px;
+}
+
+.dropbtn {
+    color: #c0c0c0;
+    text-decoration: none;
+    font-size: 1rem;
+    padding: 0;
+    cursor: pointer;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #00bfff;
+    min-width: 180px;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    top: 100%;
+    left: 15px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.dropdown-content a {
+    color: #ffffff;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    text-align: left;
+    transition: background-color 0.3s;
+    font-weight: normal;
+}
+
+.dropdown-content a:hover {
+    background-color: #00bfff;
+    color: #ffffff;
+}
+
+/* แสดง Drop-down เมื่อเมาส์ชี้ */
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* 2.6 เมนูสำหรับมือถือ (ซ่อนไว้ก่อน) */
+.mobile-menu {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    background-color: rgba(99, 194, 231, 0.98);
+    box-shadow: 0 8px 16px rgba(99, 194, 231, 0.98);
+    padding-bottom: 10px;
+}
+
+.mobile-menu a {
+    color: #ffffff;
+    text-decoration: none;
+    padding: 12px 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background-color 0.3s;
+}
+
+.mobile-menu a:hover {
+    background-color: rgba(0, 191, 255, 0.1);
+    color: #00bfff;
+}
+
+.mobile-cta-button {
+    margin: 10px 25px;
+    text-align: center;
+}
+
+.mobile-submenu-header {
+    color: #00bfff;
+    font-weight: 700;
+    padding: 12px 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: default;
+}
+
+.mobile-submenu-item {
+    padding-left: 40px !important;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.mobile-submenu-item:hover {
+    background-color: rgba(0, 191, 255, 0.2);
+}
+
+/* ==================================== */
+/* 3. Media Query สำหรับ Mobile Responsive */
+/* ==================================== */
+
+@media (max-width: 768px) {
+
+    /* 3.1 ซ่อนเมนู Desktop และ Dropdown */
+    .navbar-menu,
+    .dropdown {
+        display: none;
+    }
+
+    /* 3.2 แสดงปุ่ม Hamburger */
+    .menu-toggle {
+        display: block;
+    }
+
+    /* 3.3 แสดงเมนูมือถือเมื่อมีคลาส 'active' (ควบคุมโดย JS) */
+    .navbar-container.active .mobile-menu {
+        display: flex;
+    }
+}
+
+.content {
+    margin-top: 75px;
+}
+
+/* version 1.0.0 */
