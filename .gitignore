@@ -1,0 +1,10 @@
+connect.php
+composer-setup.php
+composer.json
+composer.lock
+*.bak
+*.sql
+*.log
+*.tmp
+*~
+*.swp

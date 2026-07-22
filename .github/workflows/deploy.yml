@@ -1,0 +1,23 @@
+name: Deploy myjob-lms
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to DO droplet
+        uses: appleboy/ssh-action@v1.2.1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: |
+            cd /opt/myjob
+            git pull origin master
+            cp /root/connect-myjob.php /opt/myjob/connect.php
+            docker compose -f docker-compose.myjob.yml up --build -d

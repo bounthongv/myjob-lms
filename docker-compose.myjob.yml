@@ -1,0 +1,9 @@
+services:
+  web:
+    build: .
+    container_name: myjob-app
+    restart: always
+    ports:
+      - "8084:80"
+    volumes:
+      - ./:/var/www/html
