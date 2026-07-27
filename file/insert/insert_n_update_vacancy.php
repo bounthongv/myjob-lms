@@ -5,7 +5,11 @@ require '../../connect.php';
 // ຟັງຊັນຊ່ວຍດຶງຄ່າຈາກ POST (ຖ້າບໍ່ມີ ໃຫ້ເປັນ null)
 // ===================================================
 function getPost($key) {
-    return isset($_POST[$key]) && $_POST[$key] !== "" ? $_POST[$key] : null;
+    if (!isset($_POST[$key]) || $_POST[$key] === "") {
+        return null;
+    }
+    $val = trim($_POST[$key]);
+    return htmlspecialchars(strip_tags($val), ENT_QUOTES, 'UTF-8');
 }
 
 // ===================================================
@@ -224,6 +228,7 @@ $data = [
     "data_id" => getPost("data_id"),
     "type_check" => getPost("type_check"),
     "vacancy_check" => getPost("vacancy_check"),
+    "password" => (isset($_POST['password']) && $_POST['password'] !== '') ? password_hash($_POST['password'], PASSWORD_DEFAULT) : null,
     "id_no" => getPost("id_no"),
     "type_job" => getPost("type_job"),
     "place_job" => getPost("place_job"),

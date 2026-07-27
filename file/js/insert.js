@@ -18,8 +18,8 @@ $(document).ready(function () {
                 }else{
                     showToast(response.message, 'success');
                     setTimeout(function() {
-                        location.reload();
-                    }, 4000);
+                        window.location.href = '../login.php?mode=login';
+                    }, 2500);
                 }
                 
             },
