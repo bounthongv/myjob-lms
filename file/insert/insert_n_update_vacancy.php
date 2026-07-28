@@ -27,7 +27,7 @@ function clearComma($value) {
 // ===================================================
 function uploadFile($fieldName, $oldValue = null) {
 
-    $uploadDir = "/var/www/html/job/file/korea/uploads/";
+    $uploadDir = __DIR__ . "/../korea/uploads/";
     if (!isset($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
         return $oldValue;
     }
