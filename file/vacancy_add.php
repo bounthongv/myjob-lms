@@ -260,8 +260,8 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
 
             <form method="POST" id="save_vacancy" enctype="multipart/form-data">
 
-                <div class="section-head">
-                    <i class="bi bi-person me-2"></i>ຂໍ້ມູນສ່ວນຕົວ
+                <div class="section-head" style=" font-size: 16px;">
+                    <i class="bi bi-person me-2 " ></i>ຂໍ້ມູນສ່ວນຕົວ
                 </div>
                 <div class="p-3">
                     <div class="row g-3">
@@ -282,8 +282,8 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                             </select>
                         </div>
                         <div class="col-12 col-4">
-                            <label class="form-label">ລະຫັດລະບຸຕົວຕົນ (Username) : </label>
-                            <input type="text" name="vacancy_check" class="form-control form-control" placeholder="ປ້ອນລະຫັດລະບຸຕົວຕົນ">
+                            <label class="form-label">ເລກທີສຳມະໂນຄົວ / ເລກທີບັດປະຈຳໂຕ / ເລກທີປັດສະປອດ : </label>
+                            <input type="text" name="vacancy_check" class="form-control form-control" placeholder="ເລກທີສຳມະໂນຄົວ / ເລກທີບັດປະຈຳໂຕ / ເລກທີປັດສະປອດ" required>
                         </div>
                         <div class="col-12 col-4">
                             <label class="form-label">ລະຫັດຜ່ານ (Password) <span class="required">*</span>: </label>
@@ -389,7 +389,12 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                         </div>
                         <div class="col-12 col-4">
                             <label class="form-label">ສາສະໜາ : </label>
-                            <input type="text" name="religion" class="form-control form-control">
+                            <select name="religion" class="form-select form-select">
+                                <option value="">ເລືອກ</option>
+                                <option value="ພຸດ">ພຸດ</option>
+                                <option value="ຄຣິສ">ຄຣິສ</option>
+                                <option value="ບໍ່ນັບຖືສາດສະໜາ">ບໍ່ນັບຖືສາດສະໜາ</option>
+                            </select>
                         </div>
                         <div class="col-12 col-4">
                             <label class="form-label">ແຂວງ ປັດຈຸບັນ: </label>
@@ -447,11 +452,11 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                         </div>
 
                         <div class="col-12 col-4">
-                            <label class="form-label">ນ້ຳໜັກ : </label>
+                            <label class="form-label">ນ້ຳໜັກ (Kg) : </label>
                             <input type="text" name="weight" class="form-control form-control">
                         </div>
                         <div class="col-12 col-4">
-                            <label class="form-label">ລວງສູງ : </label>
+                            <label class="form-label">ລວງສູງ (Cm) : </label>
                             <input type="text" name="height" class="form-control form-control">
                         </div>
                         <div class="col-12 col-4">
@@ -507,7 +512,7 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                 </div>
 
                 <div class="section-head">
-                    <i class="bi bi-camera me-2"></i>Upload File
+                    <i class="bi bi-camera me-2" style=" font-size: 16px;"></i>Upload File
                 </div>
                 <div class="p-3">
                     <div class="row g-3">
@@ -551,11 +556,11 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
 
 
                 <div class="d-flex justify-content-end gap-2 px-3 py-2 border-top" style="background:#fafcfa;border-color:var(--green-border)!important;">
-                    <a href="../" class="btn btn btn-outline-secondary px-4">
+                    <a href="../" class="btn btn-danger px-4">
                         <i class="bi bi-x-lg me-1"></i> ຍົກເລີກ
                     </a>
-                    <button type="submit" class="btn btn btn-primary px-4">
-                        <i class="bi bi-floppy me-1"></i> ບັນທຶกຂໍ້ມູນ
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="bi bi-floppy me-1"></i> ບັນທຶກ
                     </button>
                 </div>
 

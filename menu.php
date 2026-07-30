@@ -3,8 +3,8 @@
         session_start();
     }
     if (!defined('BASE_URLS')) {
-    define('BASE_URLS', 'https://myjob.apis.com.la/');
-    define('BASE_URLSS', 'https://myjob.apis.com.la/file/');
+    define('BASE_URLS', '/');
+    define('BASE_URLSS', '/file/');
   }
 ?>
 <!DOCTYPE html>

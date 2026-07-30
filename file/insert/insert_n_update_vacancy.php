@@ -23,6 +23,62 @@ function clearComma($value) {
 }
 
 // ===================================================
+// ຟັງຊັນຊ່ວຍບີບອັດຮູບພາບ (ຫຼຸດຂະໜາດຮູບຈາກໂທລະສັບ)
+// ===================================================
+function compressImage($sourcePath, $maxWidth = 1200, $quality = 75) {
+
+    if (!function_exists('imagecreatetruecolor')) {
+        return false;
+    }
+
+    $info = @getimagesize($sourcePath);
+    if (!$info) return false;
+
+    $mime = $info['mime'];
+    if ($mime !== 'image/jpeg' && $mime !== 'image/png') return false;
+
+    list($origW, $origH) = $info;
+
+    // ຖ້າຮູບມີຂະໜາດນ້ອຍກວ່າ 1200px ແລະ ນ້ອຍກວ່າ 500KB ໃຫ້ຂ້າມ (ບໍ່ຕ້ອງບີບ)
+    if ($origW <= $maxWidth && filesize($sourcePath) <= 512000) {
+        return false;
+    }
+
+    // ຄຳນວນຂະໜາດໃໝ່ ໂດຍຮັກສາອັດຕາສ່ວນພາບ
+    $ratio = min($maxWidth / $origW, 1);
+    $newW = (int)round($origW * $ratio);
+    $newH = (int)round($origH * $ratio);
+
+    $srcImage = ($mime === 'image/jpeg')
+        ? @imagecreatefromjpeg($sourcePath)
+        : @imagecreatefrompng($sourcePath);
+
+    if (!$srcImage) return false;
+
+    $dstImage = imagecreatetruecolor($newW, $newH);
+
+    // ຮັກສາຄວາມໂປ່ງໃສຂອງ PNG (ບໍ່ໃຫ້ພື້ນຫຼັງກາຍເປັນສີດຳ)
+    if ($mime === 'image/png') {
+        imagealphablending($dstImage, false);
+        imagesavealpha($dstImage, true);
+    }
+
+    imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+
+    // ບັນທຶກຮູບທີ່ຖືກບີບອັດ ຂຽນທັບຮູບເດີມ
+    if ($mime === 'image/jpeg') {
+        imagejpeg($dstImage, $sourcePath, $quality);
+    } else {
+        $pngQuality = (int)round((100 - $quality) / 100 * 9);
+        imagepng($dstImage, $sourcePath, $pngQuality);
+    }
+
+    imagedestroy($srcImage);
+    imagedestroy($dstImage);
+    return true;
+}
+
+// ===================================================
 // ຟັງຊັນຊ່ວຍອັບໂຫລດໄຟລ໌ (ໃຊ້ໄດ້ທັງ Insert ແລະ Update)
 // ===================================================
 function uploadFile($fieldName, $oldValue = null) {
@@ -42,8 +98,13 @@ function uploadFile($fieldName, $oldValue = null) {
 
     if (move_uploaded_file($_FILES[$fieldName]['tmp_name'], $targetPath)) {
 
-        if ($oldValue && file_exists($oldValue)) {
-            unlink($oldValue);
+        // ບີບອັດຮູບຖ້າໃຫຍ່ເກີນໄປ
+        if (in_array(strtolower($ext), ['jpg', 'jpeg', 'png'])) {
+            compressImage($targetPath, 1200, 75);
+        }
+
+        if ($oldValue && file_exists($uploadDir . $oldValue)) {
+            unlink($uploadDir . $oldValue);
         }
 
         return $newFileName;
@@ -239,6 +300,37 @@ $data = [
     "emp_id" => getPost("emp_id"),
     "sts_tb" => "vacancy",
 ];
+
+// ===================================================
+// ກໍລະນີ Update: ໃຫ້ອັບເດດສະເພາະຊ່ອງທີ່ຟອມສົ່ງມາຈິງ
+// ປ້ອງກັນຊ່ອງທີ່ບໍ່ມີໃນຟອມ ຖືກລ້າງເປັນ NULL
+// ===================================================
+if ($sub === "update") {
+
+    // ຊ່ອງທີ່ຊື່ໃນ $data ບໍ່ກົງກັບຊື່ຊ່ອງໃນຟອມ
+    $postKeyMap = ["list_type" => "list"];
+
+    // ຊ່ອງໄຟລ໌ ຕ້ອງເກັບໄວ້ສະເໝີ (ຖ້າບໍ່ມີໄຟລ໌ໃໝ່ uploadFile() ຈະຄືນຄ່າເກົ່າຢູ່ແລ້ວ)
+    $fileFields = [
+        "profile", "file_form", "doc_passport", "doc_farmer_cert",
+        "doc_labor_contract", "doc_census", "doc_collateral", "id_profile"
+    ];
+
+    foreach ($data as $key => $value) {
+        if (in_array($key, $fileFields)) {
+            continue;
+        }
+        $postKey = isset($postKeyMap[$key]) ? $postKeyMap[$key] : $key;
+        if (!array_key_exists($postKey, $_POST)) {
+            unset($data[$key]);
+        }
+    }
+
+    // ຖ້າບໍ່ໄດ້ປ້ອນລະຫັດຜ່ານໃໝ່ ຢ່າແກ້ໄຂລະຫັດຜ່ານເກົ່າ
+    if (!isset($_POST['password']) || $_POST['password'] === '') {
+        unset($data['password']);
+    }
+}
 
 // ===================================================
 // 1. ກໍລະນີ Insert (ຂໍ້ມູນໃໝ່)

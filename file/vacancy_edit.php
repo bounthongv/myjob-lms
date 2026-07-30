@@ -588,14 +588,14 @@ $pro = $sql_pro->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
-    <!-- <div class="d-flex justify-content-end gap-2 px-3 py-2 border-top" style="background:#fafcfa;border-color:var(--green-border)!important;">
-        <a href="../list_data_entry.php" class="btn btn-sm btn-outline-secondary px-4">
+    <div class="d-flex justify-content-end gap-2 px-3 py-2 border-top" style="background:#fafcfa;border-color:var(--green-border)!important;">
+        <a href="../list_data_entry.php" class="btn btn-danger px-4">
             <i class="bi bi-x-lg me-1"></i> ຍົກເລີກ
         </a>
-        <button type="submit" class="btn btn-sm btn-primary px-4">
-            <i class="bi bi-floppy me-1"></i> ບັນທຶกຂໍ້ມູນ
+        <button type="submit" class="btn btn-success px-4">
+            <i class="bi bi-floppy me-1"></i> ບັນທຶກ
         </button>
-    </div> -->
+    </div>
 
 </form>
 </div>
