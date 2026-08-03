@@ -21,4 +21,7 @@ jobs:
             git fetch origin
             git reset --hard origin/master
             cp /root/connect-myjob.php /opt/myjob/connect.php
+            echo "--- Ensure uploads dirs exist and are writable by www-data (33) ---"
+            mkdir -p /opt/myjob/file/korea/uploads /opt/myjob/file/uploads
+            chown -R 33:33 /opt/myjob/file/korea/uploads /opt/myjob/file/uploads
             docker compose -f docker-compose.myjob.yml up --build -d
