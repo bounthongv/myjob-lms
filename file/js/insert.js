@@ -1,27 +1,27 @@
 $(document).ready(function () {
-    
+
     $("#save_vacancy").on("submit", function (e) {
         e.preventDefault();
         let formData = new FormData(this);
-        formData.append("sub",'insert');
+        formData.append("sub", 'insert');
         $.ajax({
             type: "post",
             url: "insert/insert_n_update_vacancy.php",
             data: formData,
             dataType: "json",
-            contentType: false, 
+            contentType: false,
             processData: false,
             success: function (response) {
-                if(response.sts === 'error'){
+                if (response.sts === 'error') {
                     showToast(response.message, 'error');
                     return;
-                }else{
+                } else {
                     showToast(response.message, 'success');
-                    setTimeout(function() {
+                    setTimeout(function () {
                         window.location.href = '../login.php?mode=login';
                     }, 2500);
                 }
-                
+
             },
             error: function (xhr, status, error) {
                 showToast('An error occurred: ' + error, 'error');
@@ -31,25 +31,25 @@ $(document).ready(function () {
     $("#edit_vacancy").on("submit", function (e) {
         e.preventDefault();
         let formData = new FormData(this);
-        formData.append("sub",'update');
+        formData.append("sub", 'update');
         $.ajax({
             type: "post",
             url: "insert/insert_n_update_vacancy.php",
             data: formData,
             dataType: "json",
-            contentType: false, 
+            contentType: false,
             processData: false,
             success: function (response) {
-                if(response.sts === 'error'){
+                if (response.sts === 'error') {
                     showToast(response.message, 'error');
                     return;
-                }else{
+                } else {
                     showToast(response.message, 'success');
-                    setTimeout(function() {
-                        location = '../list_vacancy.php';
-                    }, 4000);
+                    setTimeout(function () {
+                        location = '../user_menu.php';
+                    }, 1500);
                 }
-                
+
             },
             error: function (xhr, status, error) {
                 showToast('An error occurred: ' + error, 'error');

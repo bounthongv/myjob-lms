@@ -79,27 +79,88 @@ function compressImage($sourcePath, $maxWidth = 1200, $quality = 75) {
 }
 
 // ===================================================
+// ຟັງຊັນຊ່ວຍລຶບໄຟລ໌ເກົ່າອອກຈາກໂຟນເດີ uploads
+// ===================================================
+function deleteUploadedFile($fileName) {
+
+    if (empty($fileName)) {
+        return;
+    }
+
+    // ປ້ອງກັນການລຶບໄຟລ໌ນອກໂຟນເດີ uploads (path traversal)
+    if (basename($fileName) !== $fileName) {
+        return;
+    }
+
+    $dirs = [
+        __DIR__ . "/../uploads/",
+        __DIR__ . "/../korea/uploads/",
+    ];
+
+    foreach ($dirs as $dir) {
+        $path = $dir . $fileName;
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+}
+
+// ===================================================
 // ຟັງຊັນຊ່ວຍອັບໂຫລດໄຟລ໌ (ໃຊ້ໄດ້ທັງ Insert ແລະ Update)
 // ===================================================
 function uploadFile($fieldName, $oldValue = null) {
 
     $uploadDir = __DIR__ . "/../korea/uploads/";
+    if (!is_dir($uploadDir)) {
+        $uploadDir = __DIR__ . "/../uploads/";
+    }
+
     if (!isset($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
+
+        // ກໍລະນີຜູ້ໃຊ້ກົດປຸ່ມລຶບຮູບ ແລະ ບໍ່ໄດ້ເລືອກໄຟລ໌ໃໝ່
+        if (isset($_POST["remove_" . $fieldName]) && $_POST["remove_" . $fieldName] === "1") {
+            deleteUploadedFile($oldValue);
+            return null;
+        }
+
         return $oldValue;
     }
 
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0777, true);
+    // ກວດສອບนามสกุลไฟล์ (Whitelist)
+    $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx'];
+    $ext = strtolower(pathinfo($_FILES[$fieldName]['name'], PATHINFO_EXTENSION));
+
+    if (!in_array($ext, $allowedExts)) {
+        return $oldValue; // ປະເສດໄຟລ໌ທີ່ບໍ່ແມ່ນຮູບ ຫຼື ເອກະສານທີ່ອະນຸຍາດ
     }
 
-    $ext = pathinfo($_FILES[$fieldName]['name'], PATHINFO_EXTENSION);
+    // ກວດສອບ MIME type
+    $tmpFile = $_FILES[$fieldName]['tmp_name'];
+    $finfo = @finfo_open(FILEINFO_MIME_TYPE);
+    if ($finfo && $tmpFile) {
+        $mime = finfo_file($finfo, $tmpFile);
+        finfo_close($finfo);
+        $allowedMimes = [
+            'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+            'application/pdf', 'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+        if (!in_array($mime, $allowedMimes)) {
+            return $oldValue;
+        }
+    }
+
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
     $newFileName = $fieldName . "_" . time() . "_" . uniqid() . "." . $ext;
     $targetPath = $uploadDir . $newFileName;
 
-    if (move_uploaded_file($_FILES[$fieldName]['tmp_name'], $targetPath)) {
+    if (move_uploaded_file($tmpFile, $targetPath)) {
 
         // ບີບອັດຮູບຖ້າໃຫຍ່ເກີນໄປ
-        if (in_array(strtolower($ext), ['jpg', 'jpeg', 'png'])) {
+        if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
             compressImage($targetPath, 1200, 75);
         }
 
@@ -298,6 +359,7 @@ $data = [
     "religion" => getPost("religion"),
     "timezon" => getPost("timezon"),
     "emp_id" => getPost("emp_id"),
+    "spouse_id" => getPost("spouse_id"),
     "sts_tb" => "vacancy",
 ];
 

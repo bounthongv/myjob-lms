@@ -224,19 +224,31 @@ if ($user_info && !empty($user_info['vacancy_check'])) {
         transform: translateY(1px);
     }
 
-    .back-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        color: #6b7280;
-        font-size: 14px;
-        margin-top: 8px;
-        text-decoration: none;
+    .btn-logout {
+        width: 100%;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: #ffffff;
+        border: none;
+        padding: 14px 20px;
+        border-radius: 14px;
+        font-size: 16px;
+        font-weight: 600;
         cursor: pointer;
-        transition: color 0.2s;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-decoration: none;
+        margin-top: 18px;
+        transition: all 0.2s ease;
+        box-shadow: 0 6px 16px rgba(220, 38, 38, 0.22);
     }
-    .back-link:hover {
-        color: #3b6bd6;
+    .btn-logout:hover {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        transform: translateY(-1px);
+        color: #ffffff;
+    }
+    .btn-logout:active {
+        transform: translateY(1px);
     }
 </style>
 </head>
@@ -271,7 +283,7 @@ if ($user_info && !empty($user_info['vacancy_check'])) {
             <?php echo htmlspecialchars($current_status, ENT_QUOTES, 'UTF-8'); ?>
         </div>
 
-        <!-- Action Buttons -->
+
         <a href="file/check.php" class="btn-menu">
             ຂໍຕໍ່ວີຊາ
         </a>
@@ -283,13 +295,14 @@ if ($user_info && !empty($user_info['vacancy_check'])) {
         <a href="file/check.php" class="btn-menu">
             ການປະເມິນນາຍຈ້າງ
         </a>
+           <a href="file/vacancy_edit.php?vacancy_check=<?php echo urlencode($user_info['vacancy_check'] ?? ''); ?>" class="btn-menu">
+            ຂໍ້ມູນສ່ວນຕົວ
+        </a>
 
-        <!-- Logout Link -->
-        <div style="text-align: center;">
-            <a href="logout.php" class="back-link" style="color: #dc2626;">
-                <i class="bi bi-box-arrow-left"></i> ອອກຈາກລະບົບ
-            </a>
-        </div>
+        <!-- Logout Button -->
+        <a href="logout.php" class="btn-logout">
+              ອອກຈາກລະບົບ
+        </a>
     </div>
 </div>
 

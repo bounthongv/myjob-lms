@@ -52,7 +52,7 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
             background: #f5fbf7;
             border-bottom: 1px solid var(--green-border);
             padding: 10px 16px;
-            font-size: 12px;
+            font-size: 16px;
             font-weight: 700;
             color: var(--green-mid);
             text-transform: uppercase;
@@ -322,11 +322,11 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                             <label class="form-label">ເບີໂທລະສັບ : </label>
                             <input type="text" name="phone1" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-4" style="display:none;">
                             <label class="form-label">ສັນຊາດ : </label>
                             <input type="text" name="nationality" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-4" style="display:none;">
                             <label class="form-label">ເຊື້ອຊາດ : </label>
                             <input type="text" name="race" class="form-control form-control">
                         </div>
@@ -397,27 +397,6 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                             </select>
                         </div>
                         <div class="col-12 col-4">
-                            <label class="form-label">ແຂວງ ປັດຈຸບັນ: </label>
-                            <select name="pro_id" id="pro_id" class="form-select form-select">
-                                <option value="">ເລືອກ</option>
-                                <?php foreach ($pro as $proa): ?>
-                                    <option value="<?= $proa['pro_id'] ?>"><?= $proa['pro_name_lao'] ?></option>
-                                <?php endforeach ?>
-                            </select>
-                        </div>
-                        <div class="col-12 col-4">
-                            <label class="form-label">ເມືອງ : </label>
-                            <select name="dis_id" id="dis_id" class="form-select form-select">
-                                <option value="">ເລືອກ</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-4">
-                            <label class="form-label">ບ້ານ : </label>
-                            <select name="vill_id" id="vill_id" class="form-select form-select">
-                                <option value="">ເລືອກ</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-4">
                             <label class="form-label">ເລກທີສຳມະໂນຄົວ: </label>
                             <input type="text" name="family_book_no" class="form-control form-control">
                         </div>
@@ -430,28 +409,6 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                             <input type="text" name="passport" class="form-control form-control">
                         </div>
                         <div class="col-12 col-4">
-                            <label class="form-label">ແຂວງ ເກີດ: </label>
-                            <select name="pro_id_b" id="pro_id_b" class="form-select form-select">
-                                <option value="">ເລືອກ</option>
-                                <?php foreach ($pro as $proa): ?>
-                                    <option value="<?= $proa['pro_id'] ?>"><?= $proa['pro_name_lao'] ?></option>
-                                <?php endforeach ?>
-                            </select>
-                        </div>
-                        <div class="col-12 col-4">
-                            <label class="form-label">ເມືອງ : </label>
-                            <select name="dis_id_b" id="dis_id_b" class="form-select form-select">
-                                <option value="">ເລືອກ</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-4">
-                            <label class="form-label">ບ້ານ : </label>
-                            <select name="vill_id_b" id="vill_id_b" class="form-select form-select">
-                                <option value="">ເລືອກ</option>
-                            </select>
-                        </div>
-
-                        <div class="col-12 col-4">
                             <label class="form-label">ນ້ຳໜັກ (Kg) : </label>
                             <input type="text" name="weight" class="form-control form-control">
                         </div>
@@ -463,11 +420,15 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                             <label class="form-label">ສະຖານະການແຕ່ງງານ : </label>
                             <select name="status" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
-                                <option value="SINGLE">SINGLE</option>
-                                <option value="MARRIED">MARRIED</option>
-                                <option value="DIVORCED">DIVORCED</option>
-                                <option value="MARRIED(COUPLE)">MARRIED(COUPLE)</option>
+                                <option value="SINGLE">ໂສດ</option>
+                                <option value="MARRIED">ແຕ່ງງານແລ້ວ</option>
+                                <option value="DIVORCED">ຢ່າຮ້າງ</option>
+                                <option value="MARRIED(COUPLE)">ໄປເປັນຄູ່</option>
                             </select>
+                        </div>
+                        <div class="col-12 col-4" id="spouse_id_div" style="display:none;">
+                            <label class="form-label">ເລກທີຜົວ/ເມຍ (Spouse ID) : </label>
+                            <input type="text" name="spouse_id" id="spouse_id" class="form-control form-control" placeholder="ປ້ອນເລກທີຜົວ/ເມຍ">
                         </div>
                         <div class="col-12 col-4">
                             <label class="form-label">ປະເພດວຽກ : </label>
@@ -494,25 +455,85 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                         </div>
                         <div class="col-12 col-4">
                             <label class="form-label">ປະເພດການເຂົ້າວຽກ : </label>
-                            <select name="place_job" class="form-select form-select">
+                            <select name="type_in" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
                                 <option value="ເຂົ້າໃໝ່">ເຂົ້າໃໝ່</option>
                                 <option value="ກັບຄືນໄປອີກ">ກັບຄືນໄປອີກ</option>
                             </select>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-4" id="emp_id_div" style="display:none;">
                             <label class="form-label">ລະຫັດນາຍຈ້າງ : </label>
                             <input type="text" name="emp_id" class="form-control form-control">
                         </div>
                         <div class="col-12 col-4">
-                            <label class="form-label">ຊ່ວງເວລາ : </label>
-                            <input type="text" name="timezon" class="form-control form-control">
+                            <label class="form-label">ຊ່ວງເວລາພ້ອມເລີ່ມວຽກ : </label>
+                            <input type="date" name="timezon" class="form-control form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="m-0" style="border-color:var(--green-border);">
+                <div class="section-head">
+                    <i class="bi bi-house-door-fill me-2"></i>ທີ່ຢູ່ປັດຈຸບັນ
+                </div>
+                <div class="p-3">
+                    <div class="row g-3">
+                        <div class="col-12 col-4">
+                            <label class="form-label">ແຂວງ <span class="required">*</span></label>
+                            <select name="pro_id" id="pro_id" class="form-select form-select">
+                                <option value="">ເລືອກ</option>
+                                <?php foreach ($pro as $proa): ?>
+                                    <option value="<?= $proa['pro_id'] ?>"><?= $proa['pro_name_lao'] ?></option>
+                                <?php endforeach ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-4">
+                            <label class="form-label">ເມືອງ <span class="required">*</span></label>
+                            <select name="dis_id" id="dis_id" class="form-select form-select">
+                                <option value="">ເລືອກ</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-4">
+                            <label class="form-label">ບ້ານ <span class="required">*</span></label>
+                            <select name="vill_id" id="vill_id" class="form-select form-select">
+                                <option value="">ເລືອກ</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="m-0" style="border-color:var(--green-border);">
+                <div class="section-head">
+                    <i class="bi bi-house-door-fill me-2"></i>ທີ່ຢູ່ບ່ອນເກີດ
+                </div>
+                <div class="p-3">
+                    <div class="row g-3">
+                        <div class="col-12 col-4">
+                            <label class="form-label">ແຂວງ <span class="required">*</span></label>
+                            <select name="pro_id_b" id="pro_id_b" class="form-select form-select">
+                                <option value="">ເລືອກ</option>
+                                <?php foreach ($pro as $proa): ?>
+                                    <option value="<?= $proa['pro_id'] ?>"><?= $proa['pro_name_lao'] ?></option>
+                                <?php endforeach ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-4">
+                            <label class="form-label">ເມືອງ <span class="required">*</span></label>
+                            <select name="dis_id_b" id="dis_id_b" class="form-select form-select">
+                                <option value="">ເລືອກ</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-4">
+                            <label class="form-label">ບ້ານ <span class="required">*</span></label>
+                            <select name="vill_id_b" id="vill_id_b" class="form-select form-select">
+                                <option value="">ເລືອກ</option>
+                            </select>
                         </div>
                     </div>
                 </div>
 
                 <div class="section-head">
-                    <i class="bi bi-camera me-2" style=" font-size: 16px;"></i>Upload File
+                    <i class="bi bi-camera me-2" style=" font-size: 16px;"></i>ອັບໂຫຼດເອກະສານ / ຮູບພາບ
                 </div>
                 <div class="p-3">
                     <div class="row g-3">
@@ -605,6 +626,63 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 2000);
         }
+
+        $(document).ready(function() {
+            // Show/Hide spouse_id field based on marriage status
+            $('select[name="status"]').on('change', function() {
+                var spouseDiv = $('#spouse_id_div');
+                if ($(this).val() === 'MARRIED(COUPLE)') {
+                    spouseDiv.show();
+                } else {
+                    spouseDiv.hide();
+                    $('#spouse_id').val('');
+                }
+            });
+
+            function searchEmpId() {
+                var typeIn = $('select[name="type_in"]').val();
+                if (typeIn !== 'ກັບຄືນໄປອີກ') return;
+
+                var familyBookNo = $('input[name="family_book_no"]').val();
+                var idNo = $('input[name="id_no"]').val();
+                var passport = $('input[name="passport"]').val();
+
+                if (!familyBookNo && !idNo && !passport) return;
+
+                $.ajax({
+                    type: 'POST',
+                    url: 'get/get_emp_id.php',
+                    data: {
+                        family_book_no: familyBookNo,
+                        id_no: idNo,
+                        passport: passport
+                    },
+                    dataType: 'json',
+                    success: function(res) {
+                        if (res.status === 'success' && res.emp_id) {
+                            $('input[name="emp_id"]').val(res.emp_id);
+                        }
+                    }
+                });
+            }
+
+            // Show/Hide emp_id field based on job entry type
+            $('select[name="type_in"]').on('change', function() {
+                var empDiv = $('#emp_id_div');
+                if ($(this).val() === 'ກັບຄືນໄປອີກ') {
+                    empDiv.show();
+                    searchEmpId();
+                } else {
+                    empDiv.hide();
+                    $('input[name="emp_id"]').val('');
+                }
+            });
+
+            // Auto-search emp_id when identification numbers change
+            $('input[name="family_book_no"], input[name="id_no"], input[name="passport"]').on('blur change', function() {
+                searchEmpId();
+            });
+        });
     </script>
 </body>
 
