@@ -622,3 +622,43 @@ button.nav-item[aria-expanded="true"] .nav-caret { transform: rotate(180deg); }
   color: #94a3b8;
 }
 .nav-subitem:hover { color: #fff; }
+
+/* ============================================================
+   ລະບົບຖ່າຍຮູບ / ອັບໂຫຼດຮູບ (ໃຊ້ກັບ js/photo_upload.js)
+   ============================================================ */
+
+/* ຊ່ອງເລືອກໄຟລ໌ທີ່ເຊື່ອງໄວ້
+   ຫ້າມໃຊ້ display:none (.d-none) ເພາະ iOS Safari ລຸ້ນເກົ່າ ແລະ WebView
+   ໃນແອັບ (LINE / Facebook) ຈະບໍ່ຍິງ .click() ໃຫ້ element ທີ່ຖືກ hide ແບບນັ້ນ */
+.file-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  opacity: 0;
+}
+
+/* ປຸ່ມ ຖ່າຍຮູບ / ເລືອກຈາກຄັງຮູບ */
+.upload-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.upload-actions .btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 8px;
+}
+
+/* ສະຖານະກຳລັງບີບອັດຮູບ */
+.upload-box.is-busy {
+  opacity: .6;
+  pointer-events: none;
+}

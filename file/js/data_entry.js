@@ -36,7 +36,16 @@ $(document).ready(function() {
     // 1. ระบบดักจับการเลือกไฟล์และแสดงภาพ Preview
     // ==========================================
     function setupImagePreview(fileInputId, boxId, contentId, previewBoxId, imgPreviewId) {
-        document.getElementById(fileInputId).addEventListener('change', function(e) {
+        const input = document.getElementById(fileInputId);
+
+        // ບໍ່ພົບຊ່ອງເລືອກໄຟລ໌ໃນໜ້ານີ້ → ຂ້າມໄປ (ກັນ error ທີ່ເຮັດໃຫ້ JS ທັງໄຟລ໌ຢຸດເຮັດວຽກ)
+        if (!input) return;
+
+        // ໜ້າທີ່ມີລະບົບ preview ຂອງຕົນເອງແລ້ວ (ເຊັ່ນ vacancy_edit.php) ໃຫ້ຂ້າມ
+        // ບໍ່ດັ່ງນັ້ນຈະອ່ານໄຟລ໌ຕົ້ນສະບັບເປັນ base64 ຊ້ຳ ເຊິ່ງກິນ RAM ຫຼາຍໃນມືຖື
+        if (input.closest && input.closest('[data-custom-preview]')) return;
+
+        input.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();

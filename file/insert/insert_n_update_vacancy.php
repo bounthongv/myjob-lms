@@ -1,4 +1,7 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require '../../connect.php';
 
 // ===================================================
@@ -9,7 +12,11 @@ function getPost($key) {
         return null;
     }
     $val = trim($_POST[$key]);
-    return htmlspecialchars(strip_tags($val), ENT_QUOTES, 'UTF-8');
+    // ໝາຍເຫດ: ບໍ່ໃສ່ htmlspecialchars() ຢູ່ບ່ອນນີ້ອີກຕໍ່ໄປ — ໃຫ້ escape ຕອນສະແດງຜົນ
+    // (ໜ້າ vacancy_edit.php) ແທນ ບໍ່ດັ່ງນັ້ນທຸກຄັ້ງທີ່ບັນທຶກຊ້ຳ ຄ່າຈະຖືກ encode ຊ້ອນກັນ
+    // ໄປເລື່ອຍໆ (' -> &#039; -> &amp;#039; -> ...) strip_tags() ຍັງເກັບໄວ້ເພື່ອກັນ
+    // ການໃສ່ tag HTML/script ດິບໆເຂົ້າໄປໃນຖານຂໍ້ມູນ
+    return strip_tags($val);
 }
 
 // ===================================================
@@ -25,7 +32,11 @@ function clearComma($value) {
 // ===================================================
 // ຟັງຊັນຊ່ວຍບີບອັດຮູບພາບ (ຫຼຸດຂະໜາດຮູບຈາກໂທລະສັບ)
 // ===================================================
-function compressImage($sourcePath, $maxWidth = 1200, $quality = 75) {
+// ນີ້ເປັນ fallback ຝັ່ງ server — ຮູບສ່ວນໃຫຍ່ຖືກບີບອັດຝັ່ງ browser ມາກ່ອນແລ້ວ
+// (js/photo_upload.js ບີບໃຫ້ບໍ່ເກີນ 100KB ແລະ ແປງເປັນ JPEG ສະເໝີ)
+// ບ່ອນນີ້ຈຶ່ງເຮັດວຽກຈິງສະເພາະກໍລະນີ browser ເກົ່າ ຫຼື ຜູ້ໃຊ້ປິດ JavaScript
+// (ບໍ່ໄດ້ຜ່ານການບີບອັດຝັ່ງ browser ມາກ່ອນ) ຫຼືຄ່າ default ຂອງ browser ບີບແລ້ວຍັງໃຫຍ່ຢູ່
+function compressImage($sourcePath, $maxWidth = 1600, $targetBytes = 102400) {
 
     if (!function_exists('imagecreatetruecolor')) {
         return false;
@@ -37,44 +48,89 @@ function compressImage($sourcePath, $maxWidth = 1200, $quality = 75) {
     $mime = $info['mime'];
     if ($mime !== 'image/jpeg' && $mime !== 'image/png') return false;
 
-    list($origW, $origH) = $info;
-
-    // ຖ້າຮູບມີຂະໜາດນ້ອຍກວ່າ 1200px ແລະ ນ້ອຍກວ່າ 500KB ໃຫ້ຂ້າມ (ບໍ່ຕ້ອງບີບ)
-    if ($origW <= $maxWidth && filesize($sourcePath) <= 512000) {
+    // ນ້ອຍກວ່າເປົ້າໝາຍ (100KB) ຢູ່ແລ້ວ ບໍ່ຕ້ອງບີບ
+    if (filesize($sourcePath) <= $targetBytes) {
         return false;
     }
 
-    // ຄຳນວນຂະໜາດໃໝ່ ໂດຍຮັກສາອັດຕາສ່ວນພາບ
-    $ratio = min($maxWidth / $origW, 1);
-    $newW = (int)round($origW * $ratio);
-    $newH = (int)round($origH * $ratio);
+    list($origW, $origH) = $info;
 
-    $srcImage = ($mime === 'image/jpeg')
-        ? @imagecreatefromjpeg($sourcePath)
-        : @imagecreatefrompng($sourcePath);
-
-    if (!$srcImage) return false;
-
-    $dstImage = imagecreatetruecolor($newW, $newH);
-
-    // ຮັກສາຄວາມໂປ່ງໃສຂອງ PNG (ບໍ່ໃຫ້ພື້ນຫຼັງກາຍເປັນສີດຳ)
+    // ---------------------------------------------------------------
+    // PNG: ໃຊ້ວິທີບີບອັດແບບ lossless (imagepng) ບໍ່ແປງເປັນ JPEG
+    // ເພາະນາມສະກຸນໄຟລ໌ (.png) ຖືກຕັດສິນໃຈໄວ້ກ່ອນແລ້ວໃນ uploadFile() ແລະຖືກເກັບ
+    // ໄວ້ໃນຖານຂໍ້ມູນ ຖ້າແປງເນື້ອຫາເປັນ JPEG ແຕ່ນາມສະກຸນຍັງເປັນ .png ຈະເຮັດໃຫ້
+    // header Content-Type ໃນ get_image.php ຜິດຈາກເນື້ອຫາຈິງ — ຈຶ່ງບໍ່ຮັບປະກັນ
+    // ເປົ້າໝາຍ 100KB ສຳລັບ PNG ຮູບຖ່າຍ (ພາບຖ່າຍທີ່ບີບແບບ lossless ມັກຈະໃຫຍ່ກວ່ານັ້ນສະເໝີ)
+    // ໃນທາງປະຕິບັດ ກໍລະນີນີ້ພົບໜ້ອຍຫຼາຍ ເພາະ browser ບີບແລະແປງເປັນ JPEG ໃຫ້ກ່ອນສົ່ງມາແລ້ວ
+    // ---------------------------------------------------------------
     if ($mime === 'image/png') {
+        $ratio = min($maxWidth / $origW, 1);
+        $newW = max((int)round($origW * $ratio), 1);
+        $newH = max((int)round($origH * $ratio), 1);
+
+        $srcImage = @imagecreatefrompng($sourcePath);
+        if (!$srcImage) return false;
+
+        $dstImage = imagecreatetruecolor($newW, $newH);
         imagealphablending($dstImage, false);
         imagesavealpha($dstImage, true);
+        imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+        imagepng($dstImage, $sourcePath, 9);
+
+        imagedestroy($srcImage);
+        imagedestroy($dstImage);
+        return true;
     }
 
-    imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+    // ---------------------------------------------------------------
+    // JPEG: ວົນລອງຫຼຸດຂະໜາດ+ຄຸນະພາບເທື່ອລະຂັ້ນ ຈົນກວ່າຈະໄດ້ບໍ່ເກີນ $targetBytes
+    // ໃຊ້ ob_start()/imagejpeg(null) ເພື່ອບີບອັດໃນ memory ບໍ່ຕ້ອງຂຽນ disk ຊ້ຳໆ
+    // ---------------------------------------------------------------
+    $srcImage = @imagecreatefromjpeg($sourcePath);
+    if (!$srcImage) return false;
 
-    // ບັນທຶກຮູບທີ່ຖືກບີບອັດ ຂຽນທັບຮູບເດີມ
-    if ($mime === 'image/jpeg') {
-        imagejpeg($dstImage, $sourcePath, $quality);
-    } else {
-        $pngQuality = (int)round((100 - $quality) / 100 * 9);
-        imagepng($dstImage, $sourcePath, $pngQuality);
+    $scaleSteps   = [1, 0.85, 0.7, 0.55, 0.42, 0.32];
+    $qualitySteps = [80, 70, 60, 50, 40, 30];
+
+    $bestData = null;
+    $bestSize = null;
+
+    foreach ($scaleSteps as $scale) {
+        $ratio = min($maxWidth / $origW, 1) * $scale;
+        $newW  = max((int)round($origW * $ratio), 40);
+        $newH  = max((int)round($origH * $ratio), 40);
+
+        $dstImage = imagecreatetruecolor($newW, $newH);
+        imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+
+        $hitTarget = false;
+
+        foreach ($qualitySteps as $q) {
+            ob_start();
+            imagejpeg($dstImage, null, $q);
+            $data = ob_get_clean();
+            $size = strlen($data);
+
+            if ($bestSize === null || $size < $bestSize) {
+                $bestSize = $size;
+                $bestData = $data;
+            }
+
+            if ($size <= $targetBytes) {
+                $hitTarget = true;
+                break;
+            }
+        }
+
+        imagedestroy($dstImage);
+        if ($hitTarget) break;
     }
 
     imagedestroy($srcImage);
-    imagedestroy($dstImage);
+
+    if ($bestData === null) return false;
+
+    file_put_contents($sourcePath, $bestData);
     return true;
 }
 
@@ -93,9 +149,9 @@ function deleteUploadedFile($fileName) {
     }
 
     $dirs = [
-        __DIR__ . "/../uploads/",
-        __DIR__ . "/../korea/uploads/",
-    ];
+            __DIR__ . "/../uploads/",
+            __DIR__ . "/../korea/uploads/",
+        ];
 
     foreach ($dirs as $dir) {
         $path = $dir . $fileName;
@@ -111,9 +167,9 @@ function deleteUploadedFile($fileName) {
 function uploadFile($fieldName, $oldValue = null) {
 
     $uploadDir = __DIR__ . "/../korea/uploads/";
-    if (!is_dir($uploadDir)) {
-        $uploadDir = __DIR__ . "/../uploads/";
-    }
+        if (!is_dir($uploadDir)) {
+            $uploadDir = __DIR__ . "/../uploads/";
+        }
 
     if (!isset($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
 
@@ -159,9 +215,9 @@ function uploadFile($fieldName, $oldValue = null) {
 
     if (move_uploaded_file($tmpFile, $targetPath)) {
 
-        // ບີບອັດຮູບຖ້າໃຫຍ່ເກີນໄປ
+        // ບີບອັດຮູບຖ້າໃຫຍ່ເກີນໄປ (ເປົ້າໝາຍ ≤100KB — ຄ່າ default ຂອງ compressImage())
         if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
-            compressImage($targetPath, 1200, 75);
+            compressImage($targetPath);
         }
 
         if ($oldValue && file_exists($uploadDir . $oldValue)) {
@@ -184,6 +240,45 @@ $passport = getPost("passport");
 $sql    = "";
 $params = [];
 $msg    = "";
+
+// ===================================================
+// ຄວາມປອດໄພ: sub=update ຕ້ອງ login ແລະ ຕ້ອງເປັນເຈົ້າຂອງແຖວນັ້ນຈິງໆ
+// (ກ່ອນໜ້ານີ້ file ນີ້ບໍ່ມີການກວດ session ເລີຍ ໃຜກໍ່ສົ່ງ POST id ໃດກໍ່ໄດ້
+// ແລ້ວແກ້ໄຂ/overwrite ຂໍ້ມູນຄົນອື່ນໄດ້ໂດຍກົງ)
+// sub=insert ຍັງເປີດໃຫ້ສາທາລະນະໃຊ້ໄດ້ຕໍ່ໄປ ເພາະເປັນຟອມລົງທະບຽນຄົນໃໝ່ທີ່ຍັງບໍ່ທັນມີບັນຊີ
+// (vacancy_add.php ບໍ່ໄດ້ບັງຄັບ login)
+// ===================================================
+if ($sub === "update") {
+    $sessionId = $_SESSION['customer_id'] ?? $_SESSION['user_id'] ?? '';
+
+    if (empty($sessionId)) {
+        echo json_encode([
+            'message' => 'ກະລຸນາເຂົ້າສູ່ລະບົບກ່ອນແກ້ໄຂຂໍ້ມູນ',
+            'sts' => 'error'
+        ]);
+        exit;
+    }
+
+    if (empty($id)) {
+        echo json_encode(['message' => 'ບໍ່ພົບ ID ຂໍ້ມູນທີ່ຈະແກ້ໄຂ', 'sts' => 'error']);
+        exit;
+    }
+
+    $sqlOwner = "SELECT id FROM data_entry_korea
+                 WHERE id = :id
+                 AND (vacancy_check = :sid OR data_id = :sid OR phone1 = :sid OR passport = :sid)
+                 LIMIT 1";
+    $stmtOwner = $conn->prepare($sqlOwner);
+    $stmtOwner->execute([':id' => $id, ':sid' => $sessionId]);
+
+    if ($stmtOwner->rowCount() === 0) {
+        echo json_encode([
+            'message' => 'ທ່ານບໍ່ມີສິດແກ້ໄຂຂໍ້ມູນນີ້',
+            'sts' => 'error'
+        ]);
+        exit;
+    }
+}
 
 // ===================================================
 // ກວດສອບ Passport ຊ້ຳກັນ ກ່ອນບັນທຶກ

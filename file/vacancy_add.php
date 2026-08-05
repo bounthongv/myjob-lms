@@ -26,7 +26,7 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=<?= fileatime('style.css') ?>">
+    <link rel="stylesheet" href="style.css?v=<?= filemtime(__DIR__ . '/style.css') ?>">
     <style>
         :root {
             --green-dark: #1a4d2e;
@@ -265,15 +265,15 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                 </div>
                 <div class="p-3">
                     <div class="row g-3">
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ເລກທີລົງທະບຽນ <span class="required">*</span>: </label>
                             <input type="text" name="data_id" class="form-control form-control" value="<?= $data_id ?>" readonly>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ວັນທີ <span class="required">*</span>: </label>
                             <input type="date" name="interview_date" class="form-control form-control" value="<?= date('Y-m-d') ?>">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ປະເພດລະບຸຕົວຕົນ : </label>
                             <select name="type_check" id="type_check" class="form-select form-select">
                                 <option value="ສຳມະໂນຄົວ">ສຳມະໂນຄົວ</option>
@@ -281,36 +281,36 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                                 <option value="ພາດສະປອດ">ພາດສະປອດ</option>
                             </select>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ເລກທີສຳມະໂນຄົວ / ເລກທີບັດປະຈຳໂຕ / ເລກທີປັດສະປອດ : </label>
                             <input type="text" name="vacancy_check" class="form-control form-control" placeholder="ເລກທີສຳມະໂນຄົວ / ເລກທີບັດປະຈຳໂຕ / ເລກທີປັດສະປອດ" required>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ລະຫັດຜ່ານ (Password) <span class="required">*</span>: </label>
                             <input type="password" name="password" class="form-control form-control" placeholder="ປ້ອນລະຫັດຜ່ານ" required>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ຊື່ (ພາສາລາວ) : </label>
                             <input type="text" name="fname" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ນາມສະກຸນ : </label>
                             <input type="text" name="lname" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ຊື່ (ພາສາອັງກິດ) : </label>
                             <input type="text" name="fname_eng" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ນາມສະກຸນ (ພາສາອັງກິດ) : </label>
                             <input type="text" name="lname_eng" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ວັນເດືອນປີເກີດ : </label>
                             <input type="date" name="dob" id="dob" class="form-control form-control">
                             <input type="hidden" name="age" id="age" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ເພດ : </label>
                             <select name="gender" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
@@ -318,19 +318,19 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                                 <option value="M">ຊາຍ</option>
                             </select>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ເບີໂທລະສັບ : </label>
                             <input type="text" name="phone1" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4" style="display:none;">
+                        <div class="col-12 col-md-4" style="display:none;">
                             <label class="form-label">ສັນຊາດ : </label>
                             <input type="text" name="nationality" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4" style="display:none;">
+                        <div class="col-12 col-md-4" style="display:none;">
                             <label class="form-label">ເຊື້ອຊາດ : </label>
                             <input type="text" name="race" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ຊົນເຜົ່າ : </label>
                             <select name="eth" class="form-select form-select">
                                 <option value="ລາວລຸ່ມ">ລາວລຸ່ມ</option>
@@ -387,7 +387,7 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                                 <option value="ອິວມ້ຽນ">ອິວມ້ຽນ</option>
                             </select>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ສາສະໜາ : </label>
                             <select name="religion" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
@@ -396,27 +396,27 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                                 <option value="ບໍ່ນັບຖືສາດສະໜາ">ບໍ່ນັບຖືສາດສະໜາ</option>
                             </select>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ເລກທີສຳມະໂນຄົວ: </label>
                             <input type="text" name="family_book_no" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ເລກບັດປະຈຳຕົວ : </label>
                             <input type="text" name="id_no" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ເລກທີປັດສະປອດ: </label>
                             <input type="text" name="passport" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ນ້ຳໜັກ (Kg) : </label>
                             <input type="text" name="weight" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ລວງສູງ (Cm) : </label>
                             <input type="text" name="height" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ສະຖານະການແຕ່ງງານ : </label>
                             <select name="status" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
@@ -426,11 +426,11 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                                 <option value="MARRIED(COUPLE)">ໄປເປັນຄູ່</option>
                             </select>
                         </div>
-                        <div class="col-12 col-4" id="spouse_id_div" style="display:none;">
+                        <div class="col-12 col-md-4" id="spouse_id_div" style="display:none;">
                             <label class="form-label">ເລກທີຜົວ/ເມຍ (Spouse ID) : </label>
                             <input type="text" name="spouse_id" id="spouse_id" class="form-control form-control" placeholder="ປ້ອນເລກທີຜົວ/ເມຍ">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ປະເພດວຽກ : </label>
                             <select name="type_job" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
@@ -439,7 +439,7 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                                 <option value="ບໍລິການ">ບໍລິການ</option>
                             </select>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ສະຖານທີ່ເຮັດວຽກ : </label>
                             <select name="place_job" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
@@ -449,11 +449,11 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                             </select>
                         </div>
 
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ປະສົບການ : </label>
                             <input type="text" name="agricu" id="agricu" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ປະເພດການເຂົ້າວຽກ : </label>
                             <select name="type_in" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
@@ -461,11 +461,11 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                                 <option value="ກັບຄືນໄປອີກ">ກັບຄືນໄປອີກ</option>
                             </select>
                         </div>
-                        <div class="col-12 col-4" id="emp_id_div" style="display:none;">
+                        <div class="col-12 col-md-4" id="emp_id_div" style="display:none;">
                             <label class="form-label">ລະຫັດນາຍຈ້າງ : </label>
                             <input type="text" name="emp_id" class="form-control form-control">
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ຊ່ວງເວລາພ້ອມເລີ່ມວຽກ : </label>
                             <input type="date" name="timezon" class="form-control form-control">
                         </div>
@@ -478,7 +478,7 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                 </div>
                 <div class="p-3">
                     <div class="row g-3">
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ແຂວງ <span class="required">*</span></label>
                             <select name="pro_id" id="pro_id" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
@@ -487,13 +487,13 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                                 <?php endforeach ?>
                             </select>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ເມືອງ <span class="required">*</span></label>
                             <select name="dis_id" id="dis_id" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
                             </select>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ບ້ານ <span class="required">*</span></label>
                             <select name="vill_id" id="vill_id" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
@@ -508,7 +508,7 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                 </div>
                 <div class="p-3">
                     <div class="row g-3">
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ແຂວງ <span class="required">*</span></label>
                             <select name="pro_id_b" id="pro_id_b" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
@@ -517,13 +517,13 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                                 <?php endforeach ?>
                             </select>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ເມືອງ <span class="required">*</span></label>
                             <select name="dis_id_b" id="dis_id_b" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
                             </select>
                         </div>
-                        <div class="col-12 col-4">
+                        <div class="col-12 col-md-4">
                             <label class="form-label">ບ້ານ <span class="required">*</span></label>
                             <select name="vill_id_b" id="vill_id_b" class="form-select form-select">
                                 <option value="">ເລືອກ</option>
@@ -537,38 +537,74 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                 </div>
                 <div class="p-3">
                     <div class="row g-3">
-                        <div class="col-12 col-6">
-                            <label class="form-label fw-bold mb-2">ຮູບຖ່າຍເຄິ່ງຄີງ <span class="asterisk">*</span>: </label>
-                            <div class="upload-box" id="box-photo" onclick="document.getElementById('file-photo').click()">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold mb-2">ຮູບຖ່າຍ <span class="asterisk">*</span>: </label>
+                            <div class="upload-box" id="box-photo" data-photo-box="photo" data-custom-preview>
                                 <div class="upload-content text-center" id="content-photo">
                                     <div class="icon-circle">
                                         <i class="bi bi-camera"></i>
                                     </div>
                                     <h6 class="mb-1">ຖ່າຍຮູບ ຫຼື Upload</h6>
-                                    <p class="text-muted-custom mb-0">ຄລິກເພື່ອເລືອກ</p>
+                                    <p class="text-muted-custom mb-2">ເລືອກວິທີອັບໂຫຼດ</p>
+                                    <div class="upload-actions">
+                                        <button type="button" class="btn btn-success btn-pick" data-target="photo" data-mode="camera">
+                                            <i class="bi bi-camera-fill me-1"></i> ຖ່າຍຮູບ
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success btn-pick" data-target="photo" data-mode="gallery">
+                                            <i class="bi bi-images me-1"></i> ເລືອກຈາກຄັງຮູບ
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="preview-container d-none text-center" id="preview-box-photo">
                                     <img src="" class="preview-img mb-2" id="img-preview-photo">
-                                    <p class="text-success small mb-0"><i class="bi bi-check-circle-fill"></i> ເລືອກຮູບແລ້ວ (ຄລິກເພື່ອປ່ຽນ)</p>
+                                    <p class="text-success small mb-2"><i class="bi bi-check-circle-fill"></i> ເລືອກຮູບແລ້ວ</p>
+                                    <div class="upload-actions">
+                                        <button type="button" class="btn btn-outline-success btn-pick" data-target="photo" data-mode="camera">
+                                            <i class="bi bi-camera-fill me-1"></i> ຖ່າຍໃໝ່
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-pick" data-target="photo" data-mode="gallery">
+                                            <i class="bi bi-images me-1"></i> ເລືອກໃໝ່
+                                        </button>
+                                    </div>
                                 </div>
-                                <input type="file" name="profile" id="file-photo" accept="image/*" class="d-none">
+                                <!-- ຊ່ອງເລືອກຈາກຄັງຮູບ / ໄຟລ໌ (ໃຊ້ accept="image/*" ລ້ວນ ເພື່ອໃຫ້ iOS ແປງ HEIC ເປັນ JPEG ໃຫ້ອັດຕະໂນມັດ) -->
+                                <input type="file" name="profile" id="file-photo" accept="image/*" class="file-hidden">
+                                <!-- ຊ່ອງຖ່າຍຮູບໂດຍກົງ: capture ບັງຄັບເປີດກ້ອງຫຼັງ (Android + iOS 14.3 ຂຶ້ນໄປ) -->
+                                <input type="file" name="profile" id="cam-photo" accept="image/*" capture="environment" class="file-hidden" disabled>
                             </div>
                         </div>
-                        <div class="col-12 col-6">
+                        <div class="col-12 col-md-6">
                             <label class="form-label fw-bold mb-2">ຮູບເອກະສານຢືນຢັນຕົວຕົນ <span class="asterisk">*</span>: </label>
-                            <div class="upload-box" id="box-interview-form" onclick="document.getElementById('file-interview-form').click()">
+                            <div class="upload-box" id="box-interview-form" data-photo-box="interview-form" data-custom-preview>
                                 <div class="upload-content text-center" id="content-interview-form">
                                     <div class="icon-circle">
                                         <i class="bi bi-camera"></i>
                                     </div>
                                     <h6 class="mb-1">ຖ່າຍຮູບ ຫຼື Upload</h6>
-                                    <p class="text-muted-custom mb-0">ຄລິກເພື່ອເລືອກ</p>
+                                    <p class="text-muted-custom mb-2">ເລືອກວິທີອັບໂຫຼດ</p>
+                                    <div class="upload-actions">
+                                        <button type="button" class="btn btn-success btn-pick" data-target="interview-form" data-mode="camera">
+                                            <i class="bi bi-camera-fill me-1"></i> ຖ່າຍຮູບ
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success btn-pick" data-target="interview-form" data-mode="gallery">
+                                            <i class="bi bi-images me-1"></i> ເລືອກຈາກຄັງຮູບ
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="preview-container d-none text-center" id="preview-box-interview-form">
                                     <img src="" class="preview-img mb-2" id="img-preview-interview-form">
-                                    <p class="text-success small mb-0"><i class="bi bi-check-circle-fill"></i> ເລືອກຮູບແລ້ວ (ຄລິກເພື່ອປ່ຽນ)</p>
+                                    <p class="text-success small mb-2"><i class="bi bi-check-circle-fill"></i> ເລືອກຮູບແລ້ວ</p>
+                                    <div class="upload-actions">
+                                        <button type="button" class="btn btn-outline-success btn-pick" data-target="interview-form" data-mode="camera">
+                                            <i class="bi bi-camera-fill me-1"></i> ຖ່າຍໃໝ່
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-pick" data-target="interview-form" data-mode="gallery">
+                                            <i class="bi bi-images me-1"></i> ເລືອກໃໝ່
+                                        </button>
+                                    </div>
                                 </div>
-                                <input type="file" name="id_profile" id="file-interview-form" accept="image/*" class="d-none">
+                                <input type="file" name="id_profile" id="file-interview-form" accept="image/*" class="file-hidden">
+                                <input type="file" name="id_profile" id="cam-interview-form" accept="image/*" capture="environment" class="file-hidden" disabled>
                             </div>
                         </div>
 
@@ -592,8 +628,9 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="js/data_entry.js?v=<?= filemtime('js/data_entry.js') ?>"></script>
-    <script src="js/insert.js?v=<?= filemtime('js/insert.js') ?>"></script>
+    <script src="js/data_entry.js?v=<?= filemtime(__DIR__ . '/js/data_entry.js') ?>"></script>
+    <script src="js/insert.js?v=<?= filemtime(__DIR__ . '/js/insert.js') ?>"></script>
+    <script src="js/photo_upload.js?v=<?= filemtime(__DIR__ . '/js/photo_upload.js') ?>"></script>
     <script>
         function toggleSidebar() {
             const width = window.innerWidth;

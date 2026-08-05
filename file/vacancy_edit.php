@@ -11,12 +11,15 @@ if (!isset($_SESSION['customer_id']) && !isset($_SESSION['user_id']) && !isset($
 }
 
 $user_session_id = $_SESSION['customer_id'] ?? $_SESSION['user_id'] ?? '';
-$vacancy_check = isset($_GET['vacancy_check']) ? trim($_GET['vacancy_check']) : '';
 
-// หากไม่ได้ส่ง vacancy_check มา หรือไม่ใช่ Admin ให้ใช้ ID ของผู้ใช้ที่ล็อกอินอยู่
-if (empty($vacancy_check)) {
-    $vacancy_check = $user_session_id;
+// ຄວາມປອດໄພ: ຫ້າມໃຊ້ $_GET['vacancy_check'] ເປັນຕົວກຳນົດວ່າຈະໂຫຼດຂໍ້ມູນຂອງໃຜ
+// ລະບົບນີ້ບໍ່ມີ Role/Admin ແຍກຕ່າງຫາກ (login_action.php ອອກ session ດຽວກັນໃຫ້ທຸກຄົນ)
+// ດັ່ງນັ້ນຕ້ອງຜູກກັບ session ຂອງຄົນທີ່ login ຢູ່ສະເໝີ ບໍ່ດັ່ງນັ້ນຄົນທີ່ login ຢູ່ແລ້ວ
+// ຈະສາມາດໃສ່ ?vacancy_check=<ຄົນອື່ນ> ແລ້ວເບິ່ງ/ແກ້ໄຂຂໍ້ມູນສ່ວນຕົວຄົນອື່ນໄດ້ (IDOR)
+if (empty($user_session_id)) {
+    die("<div style='text-align:center; padding:50px; font-family:sans-serif;'><h2>ກະລຸນາເຂົ້າສູ່ລະບົບ</h2><a href='../login.php'>ເຂົ້າສູ່ລະບົບ</a></div>");
 }
+$vacancy_check = $user_session_id;
 
 $sql = $conn->prepare("SELECT data.*,
 -- ປັດຈຸບັນ
@@ -78,12 +81,20 @@ $sql_pro = $conn->prepare("SELECT * FROM province ORDER BY pro_id ASC");
 $sql_pro->execute();
 $pro = $sql_pro->fetchAll(PDO::FETCH_ASSOC);
 
+// ຟັງຊັນ escape ສຳລັບສະແດງຜົນ (ໃຊ້ທຸກບ່ອນທີ່ເອົາຄ່າຈາກຖານຂໍ້ມູນມາໃສ່ HTML)
+// html_entity_decode() ກ່ອນ ເພື່ອຈັດການຂໍ້ມູນເກົ່າທີ່ຖືກ encode ໄວ້ແລ້ວຕອນບັນທຶກ
+// (ລະບົບເກົ່າ getPost() ໃສ່ htmlspecialchars ກ່ອນເກັບລົງ DB — ດຽວນີ້ເອົາອອກແລ້ວ)
+// ຖ້າບໍ່ decode ກ່ອນ ຂໍ້ມູນເກົ່າຈະສະແດງເປັນ &#039; ໃຫ້ຜູ້ໃຊ້ເຫັນ
+function h($value) {
+    return htmlspecialchars(html_entity_decode((string)($value ?? ''), ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
+}
+
 function getImgUrl($filename) {
     if (empty($filename)) return '';
     $possiblePaths = [
-        __DIR__ . '/uploads/' . $filename,
-        __DIR__ . '/korea/uploads/' . $filename,
-    ];
+            __DIR__ . '/uploads/' . $filename,
+            __DIR__ . '/korea/uploads/' . $filename,
+        ];
     foreach ($possiblePaths as $p) {
         if (file_exists($p) && is_file($p)) {
             return 'get_image.php?f=' . urlencode($filename);
@@ -106,7 +117,7 @@ function getImgUrl($filename) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=<?= fileatime('style.css') ?>">
+    <link rel="stylesheet" href="style.css?v=<?= filemtime(__DIR__ . '/style.css') ?>">
     <style>
         :root {
             --green-dark: #1a4d2e;
@@ -368,6 +379,9 @@ function getImgUrl($filename) {
         .custom-action-row.has-selection .btn:not(.active) {
             opacity: 0.55;
         }
+
+        /* ໝາຍເຫດ: CSS ຂອງລະບົບຖ່າຍຮູບ (.file-hidden, .upload-actions, .is-busy)
+           ຢູ່ໃນ style.css ເພື່ອໃຊ້ຮ່ວມກັບ vacancy_add.php */
     </style>
 </head>
 <body>
@@ -388,7 +402,7 @@ function getImgUrl($filename) {
 
     <form method="POST" id="edit_vacancy" enctype="multipart/form-data">
 
-    <input type="hidden" name="id" value="<?= $row['id'] ?>">
+    <input type="hidden" name="id" value="<?= h($row['id']) ?>">
     <input type="hidden" name="sub" value="update">
 
     <div class="section-head">
@@ -396,56 +410,55 @@ function getImgUrl($filename) {
     </div>
     <div class="p-3">
         <div class="row g-3">
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ວັນທີ <span class="required">*</span> : </label>
-                <input type="date" name="interview_date" class="form-control form-control" value="<?= $row['interview_date'] ?>">
-                <input type="hidden" name="id" class="form-control form-control" value="<?= $row['id'] ?>">
+                <input type="date" name="interview_date" class="form-control form-control" value="<?= h($row['interview_date']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ນາມສະກຸນ (ພາສາອັງກິດ) : </label>
-                <input type="text" name="lname_eng" class="form-control form-control" value="<?= $row['lname_eng'] ?>">
+                <input type="text" name="lname_eng" class="form-control form-control" value="<?= h($row['lname_eng']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ຊື່ (ພາສາອັງກິດ) : </label>
-                <input type="text" name="fname_eng" class="form-control form-control" value="<?= $row['fname_eng'] ?>">
+                <input type="text" name="fname_eng" class="form-control form-control" value="<?= h($row['fname_eng']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ຊື່ຫຼິ້ນ : </label>
-                <input type="text" name="nickname" class="form-control form-control" value="<?= $row['nickname'] ?>">
+                <input type="text" name="nickname" class="form-control form-control" value="<?= h($row['nickname']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ຊື່ (ພາສາລາວ) : </label>
-                <input type="text" name="fname" class="form-control form-control" value="<?= $row['fname'] ?>">
+                <input type="text" name="fname" class="form-control form-control" value="<?= h($row['fname']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ນາມສະກຸນ : </label>
-                <input type="text" name="lname" class="form-control form-control" value="<?= $row['lname'] ?>">
+                <input type="text" name="lname" class="form-control form-control" value="<?= h($row['lname']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ເບີໂທລະສັບ : </label>
-                <input type="text" name="phone1" class="form-control form-control" value="<?= $row['phone1'] ?>">
+                <input type="text" name="phone1" class="form-control form-control" value="<?= h($row['phone1']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ເບີໂທລະສັບ 2 : </label>
-                <input type="text" name="phone2" class="form-control form-control" value="<?= $row['phone2'] ?>">
+                <input type="text" name="phone2" class="form-control form-control" value="<?= h($row['phone2']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ເບີໂທຍາດພີ່ນ້ອງ : </label>
-                <input type="text" name="fam_phone" class="form-control form-control" value="<?= $row['fam_phone'] ?>">
+                <input type="text" name="fam_phone" class="form-control form-control" value="<?= h($row['fam_phone']) ?>">
             </div>
-            <div class="col-12 col-4" style="display:none;">
+            <div class="col-12 col-md-4" style="display:none;">
                 <label class="form-label">ສັນຊາດ : </label>
-                <input type="text" name="nationality" class="form-control form-control" value="<?= $row['nationality'] ?>">
+                <input type="text" name="nationality" class="form-control form-control" value="<?= h($row['nationality']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ວັນເດືອນປີເກີດ : </label>
-                <input type="date" name="dob" id="dob" class="form-control form-control" value="<?= $row['dob'] ?>">
+                <input type="date" name="dob" id="dob" class="form-control form-control" value="<?= h($row['dob']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ອາຍຸ : </label>
-                <input type="text" name="age" id="age" class="form-control form-control" value="<?= $row['age'] ?>">
+                <input type="text" name="age" id="age" class="form-control form-control" value="<?= h($row['age']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ເພດ : </label>
                 <select name="gender" class="form-select form-select">
                     <option value="">ເລືອກ</option>
@@ -453,9 +466,9 @@ function getImgUrl($filename) {
                     <option value="M" <?= $row['gender'] == 'M' ? 'selected' : '' ?>>ຊາຍ</option>
                 </select>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ສະຖານະການແຕ່ງງານ : </label>
-                <input type="hidden" name="status" value="<?= $row['status'] ?>">
+                <input type="hidden" name="status" value="<?= h($row['status']) ?>">
                 <select class="form-select form-select" style="pointer-events: none; background-color: #e9ecef;" tabindex="-1" disabled>
                     <option value="">ເລືອກ</option>
                     <option value="SINGLE" <?= $row['status'] == 'SINGLE' ? 'selected' : '' ?>>ໂສດ</option>
@@ -464,55 +477,55 @@ function getImgUrl($filename) {
                     <option value="MARRIED(COUPLE)" <?= $row['status'] == 'MARRIED(COUPLE)' ? 'selected' : '' ?>>ໄປເປັນຄູ່</option>
                 </select>
             </div>
-            <div class="col-12 col-4" id="spouse_id_div" style="<?= $row['status'] == 'MARRIED(COUPLE)' ? '' : 'display:none;' ?>">
+            <div class="col-12 col-md-4" id="spouse_id_div" style="<?= $row['status'] == 'MARRIED(COUPLE)' ? '' : 'display:none;' ?>">
                 <label class="form-label">ເລກທີ ຜົວ/ເມຍ (Spouse ID) : </label>
-                <input type="text" name="spouse_id" id="spouse_id" class="form-control form-control" value="<?= $row['spouse_id'] ?>" placeholder="ປ້ອນເລກທີຜົວ/ເມຍ">
+                <input type="text" name="spouse_id" id="spouse_id" class="form-control form-control" value="<?= h($row['spouse_id']) ?>" placeholder="ປ້ອນເລກທີຜົວ/ເມຍ">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ນ້ຳໜັກ (Kg) : </label>
-                <input type="text" name="weight" class="form-control form-control" value="<?= $row['weight'] ?>">
+                <input type="text" name="weight" class="form-control form-control" value="<?= h($row['weight']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ລວງສູງ (Cm) : </label>
-                <input type="text" name="height" class="form-control form-control" value="<?= $row['height'] ?>">
+                <input type="text" name="height" class="form-control form-control" value="<?= h($row['height']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ເລກທີສຳມະໂນຄົວ : </label>
-                <input type="text" name="family_book_no" class="form-control form-control" value="<?= $row['family_book_no'] ?>">
+                <input type="text" name="family_book_no" class="form-control form-control" value="<?= h($row['family_book_no']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ວັນທີອອກສຳມະໂນຄົວ : </label>
-                <input type="date" name="family_book_date" class="form-control form-control" value="<?= $row['family_book_date'] ?>">
+                <input type="date" name="family_book_date" class="form-control form-control" value="<?= h($row['family_book_date']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ຊື່ພໍ່ : </label>
-                <input type="text" name="father" class="form-control form-control" value="<?= $row['father'] ?>">
+                <input type="text" name="father" class="form-control form-control" value="<?= h($row['father']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ຊື່ແມ່ : </label>
-                <input type="text" name="mother" class="form-control form-control" value="<?= $row['mother'] ?>">
+                <input type="text" name="mother" class="form-control form-control" value="<?= h($row['mother']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ໜ່ວຍ : </label>
-                <input type="text" name="unit" class="form-control form-control" value="<?= $row['unit'] ?>">
+                <input type="text" name="unit" class="form-control form-control" value="<?= h($row['unit']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ເຮືອນ : </label>
-                <input type="text" name="home" class="form-control form-control" value="<?= $row['home'] ?>">
+                <input type="text" name="home" class="form-control form-control" value="<?= h($row['home']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ເລກທີປັດສະປອດ : </label>
-                <input type="text" name="passport" class="form-control form-control" value="<?= $row['passport'] ?>" required>
+                <input type="text" name="passport" class="form-control form-control" value="<?= h($row['passport']) ?>" required>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ວັນທີອອກປັດສະປອດ : </label>
-                <input type="date" name="issue_date" class="form-control form-control" value="<?= $row['issue_date'] ?>">
+                <input type="date" name="issue_date" class="form-control form-control" value="<?= h($row['issue_date']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ວັນທີໝົດອາຍຸປັດສະປອດ : </label>
-                <input type="date" name="exp_date" class="form-control form-control" value="<?= $row['exp_date'] ?>">
+                <input type="date" name="exp_date" class="form-control form-control" value="<?= h($row['exp_date']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ໃບຂັບຂີ່ : </label>
                 <select name="driver" class="form-select form-select">
                     <option value="NO" <?= $row['driver'] == 'NO' ? 'selected' : '' ?>>NO</option>
@@ -528,7 +541,7 @@ function getImgUrl($filename) {
                     <option value="BCD" <?= $row['driver'] == 'BCD' ? 'selected' : '' ?>>BCD</option>
                 </select>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ຂະໜາດເສື້ອ : </label>
                 <select name="shirt_size" class="form-select form-select">
                     <option value="S" <?= $row['shirt_size'] == 'S' ? 'selected' : '' ?>>S</option>
@@ -538,7 +551,7 @@ function getImgUrl($filename) {
                     <option value="XXL" <?= $row['shirt_size'] == 'XXL' ? 'selected' : '' ?>>XXL</option>
                 </select>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ປະເພດແຮງງານ : </label>
                 <select name="labor_type" class="form-select form-select">
                     <option value="New" <?= $row['labor_type'] == 'New' ? 'selected' : '' ?>>New</option>
@@ -548,21 +561,21 @@ function getImgUrl($filename) {
                     <option value="Re-employment" <?= $row['labor_type'] == 'Re-employment' ? 'selected' : '' ?>>Re-employment</option>
                 </select>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ຊົນເຜົ່າ : </label>
                 <select name="eth" class="form-select form-select">
                     <?php
                     $eth_list = ["ລາວລຸ່ມ","ລາວເທິງ","ລາວສູງ","ມົ້ງ","ໄຕ","ຜູ້ໄທ","ລື້","ຍວນ","ຢັ້ງ","ແຊກ","ໄທເໜືອ","ກຶມມຸ","ກະຕາງ","ກະຕູ","ກຣຽງ","ກຣີ","ຂະແມ","ງວນ","ສາມຕ່າວ","ເຈັງ","ສະດາງ","ຊ່ວຍ","ຊິງມູນ","ຍະເຫີນ","ຕະໂອ້ຍ","ຕຣຽງ","ຕຣີ","ຕູມ","ແທ່ນ","ບິດ","ບຣູ","ເບຣົາ","ປະໂກະ","ໄປຣ","ຜ້ອງ","ມະກອງ","ມ້ອຍ","ຢຣຸ","ແຢະ","ລະເມດ","ລະວີ","ໂອຍ","ເອີດູ","ຮ່າຣັກ","ລາຫູ","ສີລາ","ຮ່າຍີ່","ໂລໂລ","ຫໍ້","ສິງສີລິ/ພູນ້ອຍ","ອິວມ້ຽນ"];
                     foreach ($eth_list as $opt): ?>
-                        <option value="<?= $opt ?>" <?= $row['eth'] == $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                        <option value="<?= h($opt) ?>" <?= $row['eth'] == $opt ? 'selected' : '' ?>><?= h($opt) ?></option>
                     <?php endforeach ?>
                 </select>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ປະສົບການ : </label>
-                <input type="text" name="agricu" id="agricu" class="form-control form-control" value="<?= $row['agricu'] ?>">
+                <input type="text" name="agricu" id="agricu" class="form-control form-control" value="<?= h($row['agricu']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ສະຖານທີ່ສຳພາດ : </label>
                 <select name="interview_location" class="form-select form-select" required>
                     <option value="Outside" <?= $row['interview_location'] == 'Outside' ? 'selected' : '' ?>>Outside</option>
@@ -573,22 +586,22 @@ function getImgUrl($filename) {
                     <option value="Online" <?= $row['interview_location'] == 'Online' ? 'selected' : '' ?>>Online</option>
                 </select>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ອາຊີບ/ວຽກ : </label>
-                <input type="text" name="job" class="form-control form-control" value="<?= $row['job'] ?>">
+                <input type="text" name="job" class="form-control form-control" value="<?= h($row['job']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ຜູ້ສຳພາດ : </label>
-                <input type="text" name="interview_name" class="form-control form-control" value="<?= $row['interview_name'] ?>">
+                <input type="text" name="interview_name" class="form-control form-control" value="<?= h($row['interview_name']) ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ແຮງງານ ມີຕົວເລືອກ : </label>
                 <select name="list" class="form-select form-select">
                     <option value="ຄົນດຽວ" <?= $row['list_type'] == 'ຄົນດຽວ' ? 'selected' : '' ?>>ຄົນດຽວ</option>
                     <option value="ຄູ່ຜົວ-ເມຍ" <?= $row['list_type'] == 'ຄູ່ຜົວ-ເມຍ' ? 'selected' : '' ?>>ຄູ່ຜົວ-ເມຍ</option>
                 </select>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ປະເພດການເຂົ້າວຽກ : </label>
                 <select name="type_in" class="form-select form-select">
                     <option value="">ເລືອກ</option>
@@ -596,13 +609,13 @@ function getImgUrl($filename) {
                     <option value="ກັບຄືນໄປອີກ" <?= ($row['type_in'] ?? '') == 'ກັບຄືນໄປອີກ' ? 'selected' : '' ?>>ກັບຄືນໄປອີກ</option>
                 </select>
             </div>
-            <div class="col-12 col-4" id="emp_id_div" style="<?= ($row['type_in'] ?? '') == 'ກັບຄືນໄປອີກ' ? '' : 'display:none;' ?>">
+            <div class="col-12 col-md-4" id="emp_id_div" style="<?= ($row['type_in'] ?? '') == 'ກັບຄືນໄປອີກ' ? '' : 'display:none;' ?>">
                 <label class="form-label">ລະຫັດນາຍຈ້າງ : </label>
-                <input type="text" name="emp_id" class="form-control form-control" value="<?= $row['emp_id'] ?? '' ?>">
+                <input type="text" name="emp_id" class="form-control form-control" value="<?= h($row['emp_id'] ?? '') ?>">
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ຊ່ວງເວລາພ້ອມເລີ່ມວຽກ : </label>
-                <input type="date" name="timezon" class="form-control form-control" value="<?= preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/', (string)($row['timezon'] ?? '')) ? $row['timezon'] : '' ?>">
+                <input type="date" name="timezon" class="form-control form-control" value="<?= h(preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/', (string)($row['timezon'] ?? '')) ? $row['timezon'] : '') ?>">
             </div>
         </div>
     </div>
@@ -613,25 +626,25 @@ function getImgUrl($filename) {
     </div>
     <div class="p-3">
         <div class="row g-3">
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ແຂວງ <span class="required">*</span></label>
                 <select name="pro_id" id="pro_id" class="form-select form-select">
                     <option value="">ເລືອກ</option>
                     <?php foreach ($pro as $proa): ?>
-                        <option value="<?= $proa['pro_id'] ?>" <?= $row['pro_id'] == $proa['pro_id'] ? 'selected' : '' ?>><?= $proa['pro_name_lao'] ?></option>
+                        <option value="<?= h($proa['pro_id']) ?>" <?= $row['pro_id'] == $proa['pro_id'] ? 'selected' : '' ?>><?= h($proa['pro_name_lao']) ?></option>
                     <?php endforeach ?>
                 </select>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ເມືອງ <span class="required">*</span></label>
-                <select name="dis_id" id="dis_id" class="form-select form-select" data-selected="<?= $row['dis_id'] ?>">
-                    <option value="<?= $row['dis_id'] ?>"><?= $row['dis_name_lao'] ?></option>
+                <select name="dis_id" id="dis_id" class="form-select form-select" data-selected="<?= h($row['dis_id']) ?>">
+                    <option value="<?= h($row['dis_id']) ?>"><?= h($row['dis_name_lao']) ?></option>
                 </select>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ບ້ານ <span class="required">*</span></label>
-                <select name="vill_id" id="vill_id" class="form-select form-select" data-selected="<?= $row['vill_id'] ?>">
-                    <option value="<?= $row['vill_id'] ?>"><?= $row['vill_name_lao'] ?></option>
+                <select name="vill_id" id="vill_id" class="form-select form-select" data-selected="<?= h($row['vill_id']) ?>">
+                    <option value="<?= h($row['vill_id']) ?>"><?= h($row['vill_name_lao']) ?></option>
                 </select>
             </div>
         </div>
@@ -643,25 +656,25 @@ function getImgUrl($filename) {
     </div>
     <div class="p-3">
         <div class="row g-3">
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ແຂວງ <span class="required">*</span></label>
                 <select name="pro_id_b" id="pro_id_b" class="form-select form-select">
                     <option value="">ເລືອກ</option>
                     <?php foreach ($pro as $proa): ?>
-                        <option value="<?= $proa['pro_id'] ?>" <?= $row['pro_id_b'] == $proa['pro_id'] ? 'selected' : '' ?>><?= $proa['pro_name_lao'] ?></option>
+                        <option value="<?= h($proa['pro_id']) ?>" <?= $row['pro_id_b'] == $proa['pro_id'] ? 'selected' : '' ?>><?= h($proa['pro_name_lao']) ?></option>
                     <?php endforeach ?>
                 </select>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ເມືອງ <span class="required">*</span></label>
-                <select name="dis_id_b" id="dis_id_b" class="form-select form-select" data-selected="<?= $row['dis_id_b'] ?>">
-                    <option value="<?= $row['dis_id_b'] ?>"><?= $row['dis_name_b'] ?></option>
+                <select name="dis_id_b" id="dis_id_b" class="form-select form-select" data-selected="<?= h($row['dis_id_b']) ?>">
+                    <option value="<?= h($row['dis_id_b']) ?>"><?= h($row['dis_name_b']) ?></option>
                 </select>
             </div>
-            <div class="col-12 col-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label">ບ້ານ <span class="required">*</span></label>
-                <select name="vill_id_b" id="vill_id_b" class="form-select form-select" data-selected="<?= $row['vill_id_b'] ?>">
-                    <option value="<?= $row['vill_id_b'] ?>"><?= $row['vill_name_b'] ?></option>
+                <select name="vill_id_b" id="vill_id_b" class="form-select form-select" data-selected="<?= h($row['vill_id_b']) ?>">
+                    <option value="<?= h($row['vill_id_b']) ?>"><?= h($row['vill_name_b']) ?></option>
                 </select>
             </div>
         </div>
@@ -672,10 +685,10 @@ function getImgUrl($filename) {
     </div>
     <div class="p-3">
         <div class="row g-3">
-            <div class="col-12 col-6">
-                <label class="form-label fw-bold mb-2">ຮູບຖ່າຍເຄິ່ງຄີງ <span class="asterisk">*</span>: </label>
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-bold mb-2">ຮູບຖ່າຍ <span class="asterisk">*</span>: </label>
                 <?php $profileUrl = getImgUrl($row['profile'] ?? ''); ?>
-                <div class="upload-box <?= !empty($profileUrl) ? 'has-file' : '' ?>" id="box-photo" onclick="document.getElementById('file-photo').click()">
+                <div class="upload-box <?= !empty($profileUrl) ? 'has-file' : '' ?>" id="box-photo" data-photo-box="photo" data-custom-preview>
                     <button type="button" class="btn  btn-danger btn-remove-img <?= !empty($profileUrl) ? '' : 'd-none' ?>" id="btn-remove-photo" data-target="photo" data-flag="remove_profile">
                         <i class="bi bi-trash"></i> ລົບຮູບ
                     </button>
@@ -684,20 +697,39 @@ function getImgUrl($filename) {
                             <i class="bi bi-camera"></i>
                         </div>
                         <h6 class="mb-1">ຖ່າຍຮູບ ຫຼື Upload</h6>
-                        <p class="text-muted-custom mb-0">ຄລິກເພື່ອເລືອກ</p>
+                        <p class="text-muted-custom mb-2">ເລືອກວິທີອັບໂຫຼດ</p>
+                        <div class="upload-actions">
+                            <button type="button" class="btn btn-success btn-pick" data-target="photo" data-mode="camera">
+                                <i class="bi bi-camera-fill me-1"></i> ຖ່າຍຮູບ
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-pick" data-target="photo" data-mode="gallery">
+                                <i class="bi bi-images me-1"></i> ເລືອກຈາກຄັງຮູບ
+                            </button>
+                        </div>
                     </div>
                     <div class="preview-container <?= !empty($profileUrl) ? '' : 'd-none' ?> text-center" id="preview-box-photo">
                         <img <?= !empty($profileUrl) ? 'src="' . htmlspecialchars($profileUrl, ENT_QUOTES, 'UTF-8') . '"' : '' ?> class="preview-img mb-2" id="img-preview-photo">
-                        <p class="text-success small mb-0"><i class="bi bi-check-circle-fill"></i> ເລືອກຮູບແລ້ວ (ຄລິກເພື່ອປ່ຽນ)</p>
+                        <p class="text-success small mb-2"><i class="bi bi-check-circle-fill"></i> ເລືອກຮູບແລ້ວ</p>
+                        <div class="upload-actions">
+                            <button type="button" class="btn btn-outline-success btn-pick" data-target="photo" data-mode="camera">
+                                <i class="bi bi-camera-fill me-1"></i> ຖ່າຍໃໝ່
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-pick" data-target="photo" data-mode="gallery">
+                                <i class="bi bi-images me-1"></i> ເລືອກໃໝ່
+                            </button>
+                        </div>
                     </div>
-                    <input type="file" name="profile" id="file-photo" accept="image/*" class="d-none">
+                    <!-- ຊ່ອງເລືອກຈາກຄັງຮູບ / ໄຟລ໌ (ໃຊ້ accept="image/*" ລ້ວນ ເພື່ອໃຫ້ iOS ແປງ HEIC ເປັນ JPEG ໃຫ້ອັດຕະໂນມັດ) -->
+                    <input type="file" name="profile" id="file-photo" accept="image/*" class="file-hidden">
+                    <!-- ຊ່ອງຖ່າຍຮູບໂດຍກົງ: capture ບັງຄັບເປີດກ້ອງຫຼັງ (Android + iOS 14.3 ຂຶ້ນໄປ) -->
+                    <input type="file" name="profile" id="cam-photo" accept="image/*" capture="environment" class="file-hidden" disabled>
                     <input type="hidden" name="remove_profile" id="remove_profile" value="0">
                 </div>
             </div>
-            <div class="col-12 col-6">
+            <div class="col-12 col-md-6">
                 <label class="form-label fw-bold mb-2">ຮູບເອກະສານຢືນຢັນຕົວຕົນ <span class="asterisk">*</span>: </label>
                 <?php $idProfileUrl = getImgUrl($row['id_profile'] ?? ''); ?>
-                <div class="upload-box <?= !empty($idProfileUrl) ? 'has-file' : '' ?>" id="box-interview-form" onclick="document.getElementById('file-interview-form').click()">
+                <div class="upload-box <?= !empty($idProfileUrl) ? 'has-file' : '' ?>" id="box-interview-form" data-photo-box="interview-form" data-custom-preview>
                     <button type="button" class="btn  btn-danger btn-remove-img <?= !empty($idProfileUrl) ? '' : 'd-none' ?>" id="btn-remove-interview-form" data-target="interview-form" data-flag="remove_id_profile">
                         <i class="bi bi-trash"></i> ລົບຮູບ
                     </button>
@@ -706,13 +738,30 @@ function getImgUrl($filename) {
                             <i class="bi bi-camera"></i>
                         </div>
                         <h6 class="mb-1">ຖ່າຍຮູບ ຫຼື Upload</h6>
-                        <p class="text-muted-custom mb-0">ຄລິກເພື່ອເລືອກ</p>
+                        <p class="text-muted-custom mb-2">ເລືອກວິທີອັບໂຫຼດ</p>
+                        <div class="upload-actions">
+                            <button type="button" class="btn btn-success btn-pick" data-target="interview-form" data-mode="camera">
+                                <i class="bi bi-camera-fill me-1"></i> ຖ່າຍຮູບ
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-pick" data-target="interview-form" data-mode="gallery">
+                                <i class="bi bi-images me-1"></i> ເລືອກຈາກຄັງຮູບ
+                            </button>
+                        </div>
                     </div>
                     <div class="preview-container <?= !empty($idProfileUrl) ? '' : 'd-none' ?> text-center" id="preview-box-interview-form">
                         <img <?= !empty($idProfileUrl) ? 'src="' . htmlspecialchars($idProfileUrl, ENT_QUOTES, 'UTF-8') . '"' : '' ?> class="preview-img mb-2" id="img-preview-interview-form">
-                        <p class="text-success small mb-0"><i class="bi bi-check-circle-fill"></i> ເລືອກຮູບແລ້ວ (ຄລິກເພື່ອປ່ຽນ)</p>
+                        <p class="text-success small mb-2"><i class="bi bi-check-circle-fill"></i> ເລືອກຮູບແລ້ວ</p>
+                        <div class="upload-actions">
+                            <button type="button" class="btn btn-outline-success btn-pick" data-target="interview-form" data-mode="camera">
+                                <i class="bi bi-camera-fill me-1"></i> ຖ່າຍໃໝ່
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-pick" data-target="interview-form" data-mode="gallery">
+                                <i class="bi bi-images me-1"></i> ເລືອກໃໝ່
+                            </button>
+                        </div>
                     </div>
-                    <input type="file" name="id_profile" id="file-interview-form" accept="image/*" class="d-none">
+                    <input type="file" name="id_profile" id="file-interview-form" accept="image/*" class="file-hidden">
+                    <input type="file" name="id_profile" id="cam-interview-form" accept="image/*" capture="environment" class="file-hidden" disabled>
                     <input type="hidden" name="remove_id_profile" id="remove_id_profile" value="0">
                 </div>
             </div>
@@ -726,7 +775,7 @@ function getImgUrl($filename) {
         <div class="row g-3">
             <div class="col-12">
                 <label class="form-label fw-bold mb-2">ໝາຍເຫດ</label>
-                <textarea name="da_remark" rows="3" class="form-control form-control"><?= $row['da_remark'] ?></textarea>
+                <textarea name="da_remark" rows="3" class="form-control form-control"><?= h($row['da_remark']) ?></textarea>
             </div>
         </div>
     </div>
@@ -747,8 +796,9 @@ function getImgUrl($filename) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="js/data_entry.js?v=<?= filemtime('js/data_entry.js') ?>"></script>
-    <script src="js/insert.js?v=<?= filemtime('js/insert.js') ?>"></script>
+    <script src="js/data_entry.js?v=<?= filemtime(__DIR__ . '/js/data_entry.js') ?>"></script>
+    <script src="js/insert.js?v=<?= filemtime(__DIR__ . '/js/insert.js') ?>"></script>
+    <script src="js/photo_upload.js?v=<?= filemtime(__DIR__ . '/js/photo_upload.js') ?>"></script>
     <script>
         function toggleSidebar() {
             const width = window.innerWidth;
@@ -782,69 +832,17 @@ function getImgUrl($filename) {
             setTimeout(() => toast.remove(), 2000);
         }
 
+        // ໝາຍເຫດ: ລະບົບຖ່າຍຮູບ / ເລືອກຮູບ / ລົບຮູບ ຢູ່ໃນ js/photo_upload.js
+        // ເພື່ອໃຊ້ຮ່ວມກັບ vacancy_add.php
+
         $(document).ready(function() {
 
-            // ==========================================
-            // ລະບົບລົບຮູບ (ຮູບຖ່າຍເຄິ່ງຄີງ / ຮູບເອກະສານຢືນຢັນຕົວຕົນ)
-            // ==========================================
-            $('.btn-remove-img').on('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation(); // ບໍ່ໃຫ້ໄປເປີດໜ້າຕ່າງເລືອກໄຟລ໌
-
-                var target = $(this).data('target'); // photo | interview-form
-                var flagId = $(this).data('flag'); // remove_profile | remove_id_profile
-                var $btn = $(this);
-
-                function doRemove() {
-                    $('#file-' + target).val('');
-                    $('#img-preview-' + target).removeAttr('src');
-                    $('#preview-box-' + target).addClass('d-none');
-                    $('#content-' + target).removeClass('d-none');
-                    $('#box-' + target).removeClass('has-file');
-                    $('#' + flagId).val('1');
-                    $btn.addClass('d-none');
-                }
-
-                if (typeof Swal === 'undefined') {
-                    if (confirm('ຕ້ອງການລົບຮູບນີ້ບໍ່ ?')) doRemove();
-                    return;
-                }
-
-                Swal.fire({
-                    title: 'ຕ້ອງການລົບຮູບນີ້ບໍ່ ?',
-                    text: 'ຮູບຈະຖືກລຶບຖາວອນຫຼັງຈາກກົດປຸ່ມ ບັນທຶກ',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'ລຶບ',
-                    cancelButtonText: 'ຍົກເລີກ'
-                }).then(function(result) {
-                    if (result.isConfirmed) doRemove();
-                });
-            });
-
-            // ຖ້າເລືອກຮູບໃໝ່ ໃຫ້ຍົກເລີກຄຳສັ່ງລຶບ ແລະ ສະແດງປຸ່ມລຶບຄືນ
-            $('#file-photo, #file-interview-form').on('change', function() {
-                var target = this.id === 'file-photo' ? 'photo' : 'interview-form';
-                var flagId = this.id === 'file-photo' ? 'remove_profile' : 'remove_id_profile';
-
-                if (this.files && this.files.length > 0) {
-                    $('#' + flagId).val('0');
-                    $('#btn-remove-' + target).removeClass('d-none');
-                }
-            });
-
-            // Show/Hide spouse_id field based on marriage status
-            $('select[name="status"]').on('change', function() {
-                var spouseDiv = $('#spouse_id_div');
-                if ($(this).val() === 'MARRIED(COUPLE)') {
-                    spouseDiv.show();
-                } else {
-                    spouseDiv.hide();
-                    $('#spouse_id').val('');
-                }
-            });
+            // ໝາຍເຫດ: ໜ້ານີ້ບໍ່ມີ handler ສະຫຼັບ spouse_id ຕາມສະຖານະການແຕ່ງງານ
+            // ເພາະ <select> ສະຖານະຖືກ disabled ໄວ້ໂດຍເຈດຕະນາ (ຄ່າຈິງຢູ່ໃນ hidden input
+            // ຊື່ status) ຜູ້ໃຊ້ແກ້ໄຂເອງບໍ່ໄດ້ ຈຶ່ງບໍ່ມີ event change ເກີດຂຶ້ນ
+            // ການສະແດງ/ເຊື່ອງ #spouse_id_div ຖືກກຳນົດຄັ້ງດຽວຕອນ render ຈາກ PHP ແລ້ວ
+            // (ຖ້າຕໍ່ໄປຢາກໃຫ້ແກ້ໄຂສະຖານະໄດ້ ຕ້ອງເອົາ disabled ອອກ ໃສ່ name="status"
+            //  ໃຫ້ select ແລະ ລຶບ hidden input ຖິ້ມ ແລ້ວຄ່ອຍເພີ່ມ handler ຄືນ)
 
             function searchEmpId() {
                 var typeIn = $('select[name="type_in"]').val();
@@ -876,7 +874,7 @@ function getImgUrl($filename) {
             // Show/Hide emp_id field based on job entry type
             $('select[name="type_in"]').on('change', function() {
                 var empDiv = $('#emp_id_div');
-                if ($(this).val() === 'ກັບຄືනໄປອີກ') {
+                if ($(this).val() === 'ກັບຄືນໄປອີກ') {
                     empDiv.show();
                     searchEmpId();
                 } else {
