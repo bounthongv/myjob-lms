@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -21,7 +24,7 @@ if (empty($user_session_id)) {
 }
 $vacancy_check = $user_session_id;
 
-$sql = $conn->prepare("SELECT data.*,
+$sql = $conn->prepare("SELECT *,
 -- ປັດຈຸບັນ
 pro.pro_name_lao as pro_name_lao,
 dis.dis_name_lao as dis_name_lao,
@@ -33,40 +36,20 @@ vill.vill_id as vill_id,
 pro_b.pro_name_lao as pro_name_b,
 dis_b.dis_name_lao as dis_name_b,
 vill_b.vill_name_lao as vill_name_b,
-data.pro_id_b,
-data.dis_id_b,
-data.vill_id_b,
--- ຄ້ຳປະກັນ
-pro_c.pro_name_lao as pro_name_c,
-dis_c.dis_name_lao as dis_name_c,
-vill_c.vill_name_lao as vill_name_c,
-data.coll_pro,
-data.coll_dis,
-data.coll_vill,
--- ຜູ້ຄຳປະກັນ
-pro_d.pro_name_lao as pro_name_d,
-dis_d.dis_name_lao as dis_name_d,
-vill_d.vill_name_lao as vill_name_d,
-data.gua_pro,
-data.gua_dis,
-data.gua_vill
-FROM data_entry_korea as data
-LEFT JOIN province as pro ON data.pro_id=pro.pro_id
-LEFT JOIN district as dis ON data.dis_id=dis.dis_id
-LEFT JOIN village as vill ON data.vill_id=vill.vill_id
+cand.pro_id_b,
+cand.dis_id_b,
+cand.vill_id_b
 
-LEFT JOIN province as pro_b ON data.pro_id_b=pro_b.pro_id
-LEFT JOIN district as dis_b ON data.dis_id_b=dis_b.dis_id
-LEFT JOIN village as vill_b ON data.vill_id_b=vill_b.vill_id
+FROM candidate_korea as cand
+LEFT JOIN province as pro ON cand.pro_id=pro.pro_id
+LEFT JOIN district as dis ON cand.dis_id=dis.dis_id
+LEFT JOIN village as vill ON cand.vill_id=vill.vill_id
 
-LEFT JOIN province as pro_c ON data.coll_pro=pro_c.pro_id
-LEFT JOIN district as dis_c ON data.coll_dis=dis_c.dis_id
-LEFT JOIN village as vill_c ON data.coll_vill=vill_c.vill_id
+LEFT JOIN province as pro_b ON cand.pro_id_b=pro_b.pro_id
+LEFT JOIN district as dis_b ON cand.dis_id_b=dis_b.dis_id
+LEFT JOIN village as vill_b ON cand.vill_id_b=vill_b.vill_id
 
-LEFT JOIN province as pro_d ON data.gua_pro=pro_d.pro_id
-LEFT JOIN district as dis_d ON data.gua_dis=dis_d.dis_id
-LEFT JOIN village as vill_d ON data.gua_vill=vill_d.vill_id
-WHERE data.vacancy_check = :id OR data.data_id = :id OR data.phone1 = :id OR data.passport = :id
+WHERE cand.vacancy_check = :id OR cand.cid = :id OR cand.phone1 = :id OR cand.passport = :id
 LIMIT 1");
 
 $sql->execute([':id' => $vacancy_check]);
@@ -92,9 +75,10 @@ function h($value) {
 function getImgUrl($filename) {
     if (empty($filename)) return '';
     $possiblePaths = [
-            __DIR__ . '/uploads/' . $filename,
-            __DIR__ . '/korea/uploads/' . $filename,
-        ];
+        '/var/www/html/job/file/korea/uploads/' . $filename,
+        __DIR__ . '/uploads/' . $filename,
+        __DIR__ . '/korea/uploads/' . $filename,
+    ];
     foreach ($possiblePaths as $p) {
         if (file_exists($p) && is_file($p)) {
             return 'get_image.php?f=' . urlencode($filename);

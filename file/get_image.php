@@ -8,6 +8,7 @@ if (empty($_GET['f'])) {
 $file = basename($_GET['f']);
 
 $possiblePaths = [
+    '/var/www/html/job/file/korea/uploads/' . $file,
     __DIR__ . '/uploads/' . $file,
     __DIR__ . '/korea/uploads/' . $file,
 ];

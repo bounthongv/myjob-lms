@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if (isset($conn) && $conn) {
             // 2. ป้องกัน SQL Injection ด้วย PDO Prepared Statement
-            $stmt = $conn->prepare("SELECT * FROM data_entry_korea WHERE vacancy_check = :id OR data_id = :id OR phone1 = :id OR passport = :id LIMIT 1");
+            $stmt = $conn->prepare("SELECT * FROM candidate_korea WHERE vacancy_check = :id OR cid = :id OR phone1 = :id OR passport = :id LIMIT 1");
             $stmt->execute([':id' => $customer_id]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 

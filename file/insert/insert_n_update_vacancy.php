@@ -1,4 +1,5 @@
 <?php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -149,9 +150,10 @@ function deleteUploadedFile($fileName) {
     }
 
     $dirs = [
-            __DIR__ . "/../uploads/",
-            __DIR__ . "/../korea/uploads/",
-        ];
+        "/var/www/html/job/file/korea/uploads/",
+        __DIR__ . "/../uploads/",
+        __DIR__ . "/../korea/uploads/",
+    ];
 
     foreach ($dirs as $dir) {
         $path = $dir . $fileName;
@@ -166,10 +168,10 @@ function deleteUploadedFile($fileName) {
 // ===================================================
 function uploadFile($fieldName, $oldValue = null) {
 
-    $uploadDir = __DIR__ . "/../korea/uploads/";
-        if (!is_dir($uploadDir)) {
-            $uploadDir = __DIR__ . "/../uploads/";
-        }
+    $uploadDir = "/var/www/html/job/file/korea/uploads/";
+    if (!is_dir($uploadDir)) {
+        $uploadDir = __DIR__ . "/../uploads/";
+    }
 
     if (!isset($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
 
@@ -231,6 +233,126 @@ function uploadFile($fieldName, $oldValue = null) {
 }
 
 // ===================================================
+// ຟັງຊັນອອກລະຫັດ data_id (ຮູບແບບ: YY + ລຳດັບ 5 ຫຼັກ ເຊັ່ນ 2600001)
+// ===================================================
+// ຕ້ອງເອີ້ນຕອນຈະ INSERT ຈິງເທົ່ານັ້ນ ຫ້າມເອີ້ນຕອນເປີດໜ້າຟອມ
+// ເພາະຖ້າອອກເລກໄວ້ລ່ວງໜ້າ ຄົນທີ່ເປີດໜ້າພ້ອມກັນຈະໄດ້ເລກດຽວກັນ
+function generateDataId(PDO $conn) {
+    $y = date('y');
+
+    // ໃຊ້ ORDER BY ... DESC LIMIT 1 ແທນ MAX(CAST(SUBSTRING(...)))
+    // ເຫດຜົນ: ຖ້າໃສ່ຟັງຊັນ (SUBSTRING/CAST) ໃສ່ column ໃນ WHERE/SELECT
+    //         MySQL ຈະໃຊ້ index ບໍ່ໄດ້ ຕ້ອງອ່ານທັງຕາຕະລາງ (full scan)
+    //         ພໍຂໍ້ມູນຫຼາຍຂຶ້ນ ຈະຊ້າຂຶ້ນເລື້ອຍໆ ແລະ ເປັນເວລາທີ່ຖື lock ຢູ່ນຳ
+    //         ວັດແທ້ທີ່ 200,000 ແຖວ: ແບບເກົ່າ 73ms → ແບບນີ້ 0.5ms (ໄວກວ່າ ~140 ເທົ່າ)
+    //
+    // ໝາຍເຫດ: ຈະໄວແທ້ຕ້ອງມີ index ໃນ column data_id (ເບິ່ງ sql/add_index.sql)
+    //          ຖ້າບໍ່ມີ index ກໍ່ຍັງເຮັດວຽກຖືກຕ້ອງ ພຽງແຕ່ຊ້າກວ່າ
+    $stmt = $conn->prepare(
+        "SELECT cid FROM candidate_korea
+         WHERE cid LIKE :prefix
+         ORDER BY cid DESC
+         LIMIT 1"
+    );
+    $stmt->execute([':prefix' => $y . '%']);
+    $last = $stmt->fetchColumn();
+
+    // ຕັດ 2 ໂຕໜ້າ (ປີ) ອອກ ເຫຼືອລຳດັບ ແລ້ວບວກ 1
+    $next = ($last !== false && $last !== null) ? ((int) substr($last, 2)) + 1 : 1;
+
+    return $y . str_pad($next, 5, '0', STR_PAD_LEFT);
+}
+
+// ===================================================
+// ຟັງຊັນອ່ານວ່າ error duplicate key ເກີດຢູ່ column ໃດ
+// ===================================================
+// MySQL ຈະບອກຊື່ index ມາໃນຂໍ້ຄວາມ error ເຊັ່ນ:
+//   Duplicate entry '2600001' for key 'data_entry_korea.uniq_data_id'
+// ຈຶ່ງຕັ້ງຊື່ index ໃຫ້ມີຊື່ column ຢູ່ນຳ (ເບິ່ງ sql/add_unique_index.sql)
+function duplicateColumn($errMsg) {
+    foreach (['cid', 'vacancy_check', 'passport'] as $col) {
+        if (stripos($errMsg, $col) !== false) {
+            return $col;
+        }
+    }
+    return null;
+}
+
+// ===================================================
+// ຟັງຊັນລັອກ (ໃຊ້ GET_LOCK ຂອງ MySQL)
+// ===================================================
+// ເປັນຫຍັງຕ້ອງມີ:
+//   ການກວດຊ້ຳດ້ວຍ SELECT ກ່ອນ INSERT ກັນບໍ່ໄດ້ 100%
+//   ຖ້າ 2 ຄົນກົດບັນທຶກພ້ອມກັນ ທັງຄູ່ຈະ SELECT ບໍ່ພົບ ແລ້ວ INSERT ໄດ້ທັງຄູ່
+//   GET_LOCK ເຮັດໃຫ້ຂັ້ນຕອນ (ກວດຊ້ຳ → ອອກເລກ → INSERT) ເປັນ atomic
+//   ຄື ມີແຕ່ 1 request ເທົ່ານັ້ນທີ່ເຂົ້າໄປໄດ້ໃນເວລາດຽວ ຄົນອື່ນຕ້ອງລໍຖ້າ
+//
+// ຂໍ້ດີ: ໃຊ້ໄດ້ທັນທີ ບໍ່ຕ້ອງແກ້ໂຄງສ້າງຕາຕະລາງ (ບໍ່ຕ້ອງເພີ່ມ UNIQUE index)
+// ຂໍ້ຈຳກັດ: ໃຊ້ໄດ້ກັບ MySQL/MariaDB ແລະ ຕ້ອງເປັນ DB server ດຽວກັນ
+//           ຖ້າໃຊ້ບໍ່ໄດ້ ລະບົບຈະເຮັດວຽກຕໍ່ໄປໂດຍບໍ່ມີລັອກ (ບໍ່ໃຫ້ຜູ້ໃຊ້ຄ້າງ)
+//           ຈຶ່ງແນະນຳໃຫ້ເພີ່ມ UNIQUE index ນຳ (sql/add_unique_index.sql)
+//           ເປັນການປ້ອງກັນ 2 ຊັ້ນ
+
+define('VACANCY_LOCK_NAME', 'vacancy_insert_lock');
+
+function acquireInsertLock(PDO $conn, $timeoutSec = 10) {
+    try {
+        $stmt = $conn->prepare("SELECT GET_LOCK(:name, :timeout)");
+        $stmt->execute([':name' => VACANCY_LOCK_NAME, ':timeout' => $timeoutSec]);
+        // ຄືນ 1 = ໄດ້ລັອກ, 0 = ລໍຖ້າຈົນໝົດເວລາ, NULL = ຜິດພາດ
+        return ((string) $stmt->fetchColumn()) === '1';
+    } catch (PDOException $e) {
+        // DB ບໍ່ຮອງຮັບ GET_LOCK (ເຊັ່ນ ບໍ່ແມ່ນ MySQL) → ເຮັດວຽກຕໍ່ໂດຍບໍ່ມີລັອກ
+        error_log('GET_LOCK unavailable: ' . $e->getMessage());
+        return false;
+    }
+}
+
+function releaseInsertLock(PDO $conn) {
+    try {
+        $stmt = $conn->prepare("SELECT RELEASE_LOCK(:name)");
+        $stmt->execute([':name' => VACANCY_LOCK_NAME]);
+        $stmt->fetchColumn();
+    } catch (PDOException $e) {
+        // ລັອກຈະຖືກປ່ອຍເອງຕອນ connection ຂາດ ຈຶ່ງບໍ່ຕ້ອງເຮັດຫຍັງເພີ່ມ
+        error_log('RELEASE_LOCK failed: ' . $e->getMessage());
+    }
+}
+
+// ===================================================
+// ຟັງຊັນກວດວ່າ ລະຫັດລະບຸຕົວຕົນ / passport ຊ້ຳກັບແຖວອື່ນບໍ່
+// ===================================================
+// ຄືນຊື່ column ທີ່ຊ້ຳ ຫຼື null ຖ້າບໍ່ຊ້ຳ
+// $excludeId ໃຊ້ຕອນ update (ບໍ່ຕ້ອງນັບແຖວຂອງຕົນເອງ)
+function findDuplicateField(PDO $conn, $vacancyCheck, $passport, $excludeId = null) {
+
+    foreach (['vacancy_check' => $vacancyCheck, 'passport' => $passport] as $col => $val) {
+        if (empty($val)) continue;
+
+        if ($excludeId) {
+            $stmt = $conn->prepare("SELECT id FROM candidate_korea WHERE $col = :val AND id != :id LIMIT 1");
+            $stmt->execute([':val' => $val, ':id' => $excludeId]);
+        } else {
+            $stmt = $conn->prepare("SELECT id FROM candidate_korea WHERE $col = :val LIMIT 1");
+            $stmt->execute([':val' => $val]);
+        }
+
+        if ($stmt->fetchColumn() !== false) {
+            return $col;
+        }
+    }
+    return null;
+}
+
+// ຂໍ້ຄວາມແຈ້ງເຕືອນຕາມ column ທີ່ຊ້ຳ
+function duplicateMessage($col) {
+    if ($col === 'vacancy_check') return 'ລະຫັດລະບຸຕົວຕົນນີ້ຖືກນຳໃຊ້ໄປແລ້ວ ກະລຸນາກວດສອບຄືນ';
+    if ($col === 'passport')      return 'ເລກ Passport ນີ້ຖືກນຳໃຊ້ໄປແລ້ວ ກະລຸນາກວດສອບຄືນ';
+    if ($col === 'cid')       return 'ເລກທີລົງທະບຽນຊ້ຳກັນ ກະລຸນາກົດບັນທຶກອີກຄັ້ງ';
+    return 'ບໍ່ສາມາດບັນທຶກຂໍ້ມູນໄດ້ ກະລຸນາລອງໃໝ່ອີກຄັ້ງ';
+}
+
+// ===================================================
 // ຮັບຄ່າ sub ເພື່ອກຳນົດວ່າຈະ insert ຫຼື update
 // ===================================================
 $sub = getPost("sub"); // "insert" ຫຼື "update"
@@ -264,9 +386,9 @@ if ($sub === "update") {
         exit;
     }
 
-    $sqlOwner = "SELECT id FROM data_entry_korea
+    $sqlOwner = "SELECT id FROM candidate_korea
                  WHERE id = :id
-                 AND (vacancy_check = :sid OR data_id = :sid OR phone1 = :sid OR passport = :sid)
+                 AND (vacancy_check = :sid OR cid = :sid OR phone1 = :sid OR passport = :sid)
                  LIMIT 1";
     $stmtOwner = $conn->prepare($sqlOwner);
     $stmtOwner->execute([':id' => $id, ':sid' => $sessionId]);
@@ -281,56 +403,35 @@ if ($sub === "update") {
 }
 
 // ===================================================
-// ກວດສອບ Passport ຊ້ຳກັນ ກ່ອນບັນທຶກ
+// ກວດສອບຂໍ້ມູນຊ້ຳ ຮອບທຳອິດ (ກ່ອນອັບໂຫຼດໄຟລ໌)
 // ===================================================
-if ($passport) {
+// ສຳຄັນ: vacancy_check ຄືລະຫັດທີ່ໃຊ້ log in (ເບິ່ງ login_action.php)
+// ຖ້າຊ້ຳກັນ 2 ຄົນ ຄົນໜຶ່ງຈະ log in ແລ້ວເຫັນຂໍ້ມູນຂອງອີກຄົນ (ເພາະ query ໃຊ້ LIMIT 1)
+//
+// ການກວດຮອບນີ້ເຮັດ "ນອກລັອກ" ເພື່ອຕອບຜູ້ໃຊ້ໄວ ແລະ ບໍ່ຕ້ອງເສຍເວລາອັບໂຫຼດຮູບ
+// ຖ້າຮູ້ຢູ່ແລ້ວວ່າຊ້ຳ ແຕ່ຍັງກັນຄົນທີ່ກົດພ້ອມກັນຈິງໆບໍ່ໄດ້
+// → ຈຶ່ງມີການກວດຮອບສອງ "ໃນລັອກ" ອີກເທື່ອ ກ່ອນ INSERT (ເບິ່ງລຸ່ມ)
+$vacancyCheck = getPost("vacancy_check");
+$dupField = findDuplicateField($conn, $vacancyCheck, $passport, ($sub === "update") ? $id : null);
 
-    if ($sub === "insert") {
-        // ກວດວ່າມີ Passport ນີ້ຢູ່ໃນຕາຕະລາງແລ້ວບໍ່
-        $sqlCheck = "SELECT id FROM data_entry_korea WHERE passport = :passport";
-        $stmtCheck = $conn->prepare($sqlCheck);
-        $stmtCheck->bindParam(":passport", $passport);
-        $stmtCheck->execute();
-
-        if ($stmtCheck->rowCount() > 0) {
-            echo json_encode([
-                'message' => 'ເລກ Passport ນີ້ຖືກນຳໃຊ້ໄປແລ້ວ ກະລຸນາກວດສອບຄືນ',
-                'sts' => 'error'
-            ]);
-            exit;
-        }
-
-    } elseif ($sub === "update") {
-        // ກວດວ່າມີ Passport ນີ້ຢູ່ໃນ Row ອື່ນ (ບໍ່ແມ່ນ id ຕົນເອງ) ຫຼືບໍ່
-        $sqlCheck = "SELECT id FROM data_entry_korea WHERE passport = :passport AND id != :id";
-        $stmtCheck = $conn->prepare($sqlCheck);
-        $stmtCheck->bindParam(":passport", $passport);
-        $stmtCheck->bindParam(":id", $id);
-        $stmtCheck->execute();
-
-        if ($stmtCheck->rowCount() > 0) {
-            echo json_encode([
-                'message' => 'ເລກ Passport ນີ້ຖືກນຳໃຊ້ໄປແລ້ວ ກະລຸນາກວດສອບຄືນ',
-                'sts' => 'error'
-            ]);
-            exit;
-        }
-    }
+if ($dupField !== null) {
+    echo json_encode([
+        'message' => duplicateMessage($dupField),
+        'sts' => 'error'
+    ]);
+    exit;
 }
 
 // ===================================================
 // ດຶງຂໍ້ມູນເກົ່າຂອງໄຟລ໌ (ໃຊ້ສະເພາະຕອນ update)
 // ===================================================
 $oldData = [
-    'profile' => null, 'file_form' => null, 'doc_passport' => null,
-    'doc_farmer_cert' => null, 'doc_labor_contract' => null,
-    'doc_census' => null, 'doc_collateral' => null,'id_profile' => null
+    'profile' => null, 'id_profile' => null
 ];
 
 if ($sub === "update" && $id) {
-    $sqlOld = "SELECT profile, file_form, doc_passport, doc_farmer_cert,
-                      doc_labor_contract, doc_census, doc_collateral,id_profile
-               FROM data_entry_korea WHERE id = :id";
+    $sqlOld = "SELECT profile, id_profile
+               FROM candidate_korea WHERE id = :id";
     $stmtOld = $conn->prepare($sqlOld);
     $stmtOld->bindParam(":id", $id);
     $stmtOld->execute();
@@ -345,7 +446,7 @@ if ($sub === "update" && $id) {
 // ດຶງຄ່າຈາກຟອມທັງໝົດ (ໃຊ້ຮ່ວມກັນທັງ insert ແລະ update)
 // ===================================================
 $data = [
-    "interview_date"       => getPost("interview_date"),
+    "register_date"       => getPost("register_date"),
     "lname_eng"           => getPost("lname_eng"),
     "fname_eng"           => getPost("fname_eng"),
     "nickname"            => getPost("nickname"),
@@ -388,61 +489,10 @@ $data = [
     "vill_id_b" => getPost("vill_id_b"),
 
     "profile"            => uploadFile("profile", $oldData['profile']),
-    "file_form"          => uploadFile("file_form", $oldData['file_form']),
-    "doc_passport"       => uploadFile("doc_passport", $oldData['doc_passport']),
-    "doc_farmer_cert"    => uploadFile("doc_farmer_cert", $oldData['doc_farmer_cert']),
-    "doc_labor_contract" => uploadFile("doc_labor_contract", $oldData['doc_labor_contract']),
-    "doc_census"         => uploadFile("doc_census", $oldData['doc_census']),
-    "doc_collateral"     => uploadFile("doc_collateral", $oldData['doc_collateral']),
     "id_profile"     => uploadFile("id_profile", $oldData['id_profile']),
 
-    "heal_date"   => getPost("heal_date"),
-    "diagnose"    => getPost("diagnose"),
-    "clinic"      => getPost("clinic"),
-    "cli_date"    => getPost("cli_date"),
-    "check_up"    => clearComma(getPost("check_up")),
-    "heal_date2"  => getPost("heal_date2"),
-    "check_up2"   => clearComma(getPost("check_up2")),
-    "heal_date3"  => getPost("heal_date3"),
-    "check_up3"   => clearComma(getPost("check_up3")),
-    "heal_remark" => getPost("heal_remark"),
-    "heal_sts"    => getPost("heal_sts"),
-
-    "pay_sts"   => getPost("pay_sts"),
-    "labor_fee" => clearComma(getPost("labor_fee")),
-
-    "coll_sts"   => getPost("coll_sts"),
-    "coll_type"  => getPost("coll_type"),
-    "coll_owner" => getPost("coll_owner"),
-    "coll_area"  => getPost("coll_area"),
-    "coll_no"    => getPost("coll_no"),
-    "coll_date"  => getPost("coll_date"),
-    "coll_value" => clearComma(getPost("coll_value")),
-    "coll_pro"   => getPost("coll_pro"),
-    "coll_dis"   => getPost("coll_dis"),
-    "coll_vill"  => getPost("coll_vill"),
-    "coll_unit"  => getPost("coll_unit"),
-    "coll_map"   => getPost("coll_map"),
-
-    "gua_relation"    => getPost("gua_relation"),
-    "gua_fname"       => getPost("gua_fname"),
-    "gua_phone"       => getPost("gua_phone"),
-    "gua_dob"         => getPost("gua_dob"),
-    "gua_nationality" => getPost("gua_nationality"),
-    "gua_job"         => getPost("gua_job"),
-    "gua_age"         => getPost("gua_age"),
-    "gua_gender"      => getPost("gua_gender"),
-    "gua_pro"         => getPost("gua_pro"),
-    "gua_book"        => getPost("gua_book"),
-    "gua_book_date"   => getPost("gua_book_date"),
-    "gua_dis"         => getPost("gua_dis"),
-    "gua_unit"        => getPost("gua_unit"),
-    "gua_home"        => getPost("gua_home"),
-    "gua_vill"        => getPost("gua_vill"),
-
-    "da_remark" => getPost("da_remark"),
     // new update
-    "data_id" => getPost("data_id"),
+    "cid" => getPost("cid"),
     "type_check" => getPost("type_check"),
     "vacancy_check" => getPost("vacancy_check"),
     "password" => (isset($_POST['password']) && $_POST['password'] !== '') ? password_hash($_POST['password'], PASSWORD_DEFAULT) : null,
@@ -455,7 +505,6 @@ $data = [
     "timezon" => getPost("timezon"),
     "emp_id" => getPost("emp_id"),
     "spouse_id" => getPost("spouse_id"),
-    "sts_tb" => "vacancy",
 ];
 
 // ===================================================
@@ -469,8 +518,7 @@ if ($sub === "update") {
 
     // ຊ່ອງໄຟລ໌ ຕ້ອງເກັບໄວ້ສະເໝີ (ຖ້າບໍ່ມີໄຟລ໌ໃໝ່ uploadFile() ຈະຄືນຄ່າເກົ່າຢູ່ແລ້ວ)
     $fileFields = [
-        "profile", "file_form", "doc_passport", "doc_farmer_cert",
-        "doc_labor_contract", "doc_census", "doc_collateral", "id_profile"
+        "profile", "id_profile"
     ];
 
     foreach ($data as $key => $value) {
@@ -494,16 +542,113 @@ if ($sub === "update") {
 // ===================================================
 if ($sub === "insert") {
 
-    $columns      = implode(", ", array_keys($data));
-    $placeholders = ":" . implode(", :", array_keys($data));
+    // ---------------------------------------------------------------
+    // ລະຫັດ data_id ຕ້ອງອອກຈາກ server ຕອນຈະ INSERT ຈິງເທົ່ານັ້ນ
+    //
+    // ແບບເກົ່າ (ມີບັນຫາ): vacancy_add.php ຄຳນວນເລກຕອນ "ເປີດໜ້າ"
+    //   ແລ້ວໃສ່ໄວ້ໃນ <input readonly> ສົ່ງມາກັບຟອມ
+    //   → 2 ຄົນເປີດໜ້າພ້ອມກັນ ໄດ້ເລກດຽວກັນ → ບັນທຶກແລ້ວຊ້ຳກັນ
+    //   → ເປີດໜ້າຄ້າງໄວ້ດົນ ແລ້ວມີຄົນລົງທະບຽນກ່ອນ → ຊ້ຳແນ່ນອນ
+    //   → readonly ກັນໄດ້ແຕ່ໜ້າຈໍ ຜູ້ໃຊ້ແກ້ຄ່າຜ່ານ DevTools ໄດ້
+    //
+    // ແບບໃໝ່: ບໍ່ເຊື່ອຄ່າ data_id ຈາກຟອມເລີຍ — server ອອກເລກເອງ
+    //   ແລະ ຖ້າຊົນກັບຄົນອື່ນ (UNIQUE index ຈັບໄດ້) ໃຫ້ອອກເລກໃໝ່ແລ້ວລອງອີກ
+    // ---------------------------------------------------------------
 
-    $sql = "INSERT INTO data_entry_korea ($columns) VALUES ($placeholders)";
-
-    foreach ($data as $key => $value) {
-        $params[":" . $key] = $value;
+    // ຂໍລັອກກ່ອນ ເພື່ອໃຫ້ຂັ້ນຕອນ (ກວດຊ້ຳ → ອອກເລກ → INSERT) ເປັນ atomic
+    // ລັອກຢູ່ບ່ອນນີ້ ບໍ່ແມ່ນຕັ້ງແຕ່ຕົ້ນໄຟລ໌ ເພາະການອັບໂຫຼດ+ບີບອັດຮູບໃຊ້ເວລາຫຼາຍວິນາທີ
+    // ຖ້າລັອກຄຸມທັງໝົດ ຄົນອື່ນຈະຕ້ອງລໍຖ້າດົນໂດຍບໍ່ຈຳເປັນ
+    if (acquireInsertLock($conn, 10)) {
+        // ໃຊ້ register_shutdown_function ເພື່ອໃຫ້ປ່ອຍລັອກແນ່ນອນ
+        // (try/finally ໃຊ້ບໍ່ໄດ້ ເພາະ finally ຈະບໍ່ເຮັດວຽກເມື່ອເອີ້ນ exit)
+        register_shutdown_function('releaseInsertLock', $conn);
     }
 
-    $msg = "ບັນທຶກຂໍ້ມູນສຳເລັດ";
+    // ກວດຊ້ຳຮອບສອງ "ພາຍໃນລັອກ" — ຮອບທຳອິດເຮັດໄປແລ້ວກ່ອນອັບໂຫຼດຮູບ
+    // ແຕ່ໃນຊ່ວງເວລານັ້ນອາດມີຄົນອື່ນບັນທຶກຂໍ້ມູນຊ້ຳກັນເຂົ້າມາກ່ອນ
+    $dupNow = findDuplicateField($conn, $vacancyCheck, $passport, null);
+    if ($dupNow !== null) {
+        echo json_encode([
+            'message' => duplicateMessage($dupNow),
+            'sts' => 'error'
+        ]);
+        exit;
+    }
+
+    $maxAttempts = 5;
+    $inserted    = false;
+    $dupColumn   = null;
+
+    for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+
+        $data['cid'] = generateDataId($conn);
+
+        $columns      = implode(", ", array_keys($data));
+        $placeholders = ":" . implode(", :", array_keys($data));
+        $sqlInsert    = "INSERT INTO candidate_korea ($columns) VALUES ($placeholders)";
+
+        $paramsInsert = [];
+        foreach ($data as $key => $value) {
+            $paramsInsert[":" . $key] = $value;
+        }
+
+        try {
+            $stmtInsert = $conn->prepare($sqlInsert);
+            $stmtInsert->execute($paramsInsert);
+            $inserted = true;
+            break;
+
+        } catch (PDOException $e) {
+
+            // 23000 = integrity constraint violation (ລວມ duplicate key)
+            if ($e->getCode() !== '23000') {
+                error_log('Insert vacancy failed: ' . $e->getMessage());
+                echo json_encode([
+                    'message' => 'ບໍ່ສາມາດບັນທຶກຂໍ້ມູນໄດ້ ກະລຸນາລອງໃໝ່ອີກຄັ້ງ',
+                    'sts' => 'error'
+                ]);
+                exit;
+            }
+
+            $dupColumn = duplicateColumn($e->getMessage());
+
+            // ຊ້ຳທີ່ data_id → ເປັນເລກທີ່ລະບົບອອກເອງ ອອກໃໝ່ແລ້ວລອງອີກ
+            if ($dupColumn === 'cid') {
+                // ຫ່າງກັນເລັກນ້ອຍແບບສຸ່ມ ຫຼຸດໂອກາດ 2 request ຊົນກັນຊ້ຳ
+                usleep(random_int(10000, 60000));
+                continue;
+            }
+
+            // ຊ້ຳທີ່ passport / vacancy_check → ເປັນຂໍ້ມູນທີ່ຜູ້ໃຊ້ປ້ອນ ລອງໃໝ່ໄປກໍ່ຊ້ຳຢູ່
+            error_log('Insert vacancy duplicate: ' . $e->getMessage());
+            break;
+        }
+    }
+
+    if ($inserted) {
+        echo json_encode([
+            'message' => 'ບັນທຶກຂໍ້ມູນສຳເລັດ',
+            'sts'     => 'success',
+            'cid' => $data['cid']
+        ]);
+    } elseif ($dupColumn === 'passport') {
+        echo json_encode([
+            'message' => 'ເລກ Passport ນີ້ຖືກນຳໃຊ້ໄປແລ້ວ ກະລຸນາກວດສອບຄືນ',
+            'sts' => 'error'
+        ]);
+    } elseif ($dupColumn === 'vacancy_check') {
+        echo json_encode([
+            'message' => 'ລະຫັດລະບຸຕົວຕົນນີ້ຖືກນຳໃຊ້ໄປແລ້ວ ກະລຸນາກວດສອບຄືນ',
+            'sts' => 'error'
+        ]);
+    } else {
+        // ລອງຄົບ 5 ຮອບແລ້ວຍັງຊົນ (ຄົນລົງທະບຽນພ້ອມກັນຫຼາຍຫຼາຍ)
+        echo json_encode([
+            'message' => 'ລະບົບກຳລັງມີຜູ້ໃຊ້ພ້ອມກັນຫຼາຍ ກະລຸນາກົດບັນທຶກອີກຄັ້ງ',
+            'sts' => 'error'
+        ]);
+    }
+    exit;
 
 // ===================================================
 // 2. ກໍລະນີ Update (ແກ້ໄຂຂໍ້ມູນເກົ່າ)
@@ -522,7 +667,7 @@ if ($sub === "insert") {
     }
     $setClause = rtrim($setClause, ", ");
 
-    $sql = "UPDATE data_entry_korea SET $setClause WHERE id = :id";
+    $sql = "UPDATE candidate_korea SET $setClause WHERE id = :id";
     $params[":id"] = $id;
 
     $msg = "ແກ້ໄຂຂໍ້ມູນສຳເລັດ";
@@ -550,8 +695,21 @@ if (!empty($sql)) {
         }
 
     } catch (PDOException $e) {
+        // ຫ້າມສົ່ງ $e->getMessage() ອອກໄປ ເພາະມີຊື່ຕາຕະລາງ/column/query ຢູ່ນຳ
+        error_log('Update vacancy failed: ' . $e->getMessage());
+
+        $dupColumn = ($e->getCode() === '23000') ? duplicateColumn($e->getMessage()) : null;
+
+        if ($dupColumn === 'passport') {
+            $errMsg = 'ເລກ Passport ນີ້ຖືກນຳໃຊ້ໄປແລ້ວ ກະລຸນາກວດສອບຄືນ';
+        } elseif ($dupColumn === 'vacancy_check') {
+            $errMsg = 'ລະຫັດລະບຸຕົວຕົນນີ້ຖືກນຳໃຊ້ໄປແລ້ວ ກະລຸນາກວດສອບຄືນ';
+        } else {
+            $errMsg = 'ບໍ່ສາມາດບັນທຶກຂໍ້ມູນໄດ້ ກະລຸນາລອງໃໝ່ອີກຄັ້ງ';
+        }
+
         echo json_encode([
-            'message' => $e->getMessage(),
+            'message' => $errMsg,
             'sts' => 'error'
         ]);
     }

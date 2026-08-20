@@ -5,13 +5,11 @@ include('../connect.php');
 $sql_pro = $conn->prepare("SELECT * FROM province ORDER BY pro_id ASC");
 $sql_pro->execute();
 $pro = $sql_pro->fetchAll(PDO::FETCH_ASSOC);
-$y = date('y');
-$sql_max = $conn->prepare("SELECT SUBSTRING(MAX(data_id),3,5) FROM data_entry_korea WHERE SUBSTRING(data_id,1,2) = '$y'");
-$sql_max->execute();
-$max = $sql_max->fetchColumn();
-$number = 1;
-$number = $max ? (int) $max + 1 : 1;
-$data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
+
+// ໝາຍເຫດ: ບໍ່ຄຳນວນ data_id ຢູ່ບ່ອນນີ້ອີກແລ້ວ
+// ເມື່ອກ່ອນຄຳນວນເລກຕອນເປີດໜ້າ ແລ້ວໃສ່ໃນ input readonly ສົ່ງໄປກັບຟອມ
+// ເຮັດໃຫ້ຄົນທີ່ເປີດໜ້າພ້ອມກັນ (ຫຼື ເປີດຄ້າງໄວ້ດົນ) ໄດ້ເລກຊ້ຳກັນ
+// ດຽວນີ້ server ເປັນຜູ້ອອກເລກຕອນກົດບັນທຶກ (insert/insert_n_update_vacancy.php)
 ?>
 <html lang="en">
 
@@ -60,7 +58,7 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
         }
 
         .form-label {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 600;
             color: var(--green-mid);
             margin-bottom: 4px;
@@ -265,13 +263,13 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                 </div>
                 <div class="p-3">
                     <div class="row g-3">
-                        <div class="col-12 col-md-4">
-                            <label class="form-label">ເລກທີລົງທະບຽນ <span class="required">*</span>: </label>
-                            <input type="text" name="data_id" class="form-control form-control" value="<?= $data_id ?>" readonly>
-                        </div>
+                        <!-- ບໍ່ມີຊ່ອງ "ເລກທີລົງທະບຽນ" ໃນຟອມອີກຕໍ່ໄປ ຕາມທີ່ຜູ້ໃຊ້ຂໍ
+                             server ຍັງເປັນຜູ້ອອກເລກລົງທະບຽນຕອນບັນທຶກຄືເກົ່າ (ເບິ່ງ
+                             insert/insert_n_update_vacancy.php ຟັງຊັນ generateDataId)
+                             ພຽງແຕ່ບໍ່ສະແດງໃຫ້ຜູ້ໃຊ້ເຫັນຢູ່ໃນຟອມນີ້ -->
                         <div class="col-12 col-md-4">
                             <label class="form-label">ວັນທີ <span class="required">*</span>: </label>
-                            <input type="date" name="interview_date" class="form-control form-control" value="<?= date('Y-m-d') ?>">
+                            <input type="date" name="register_date" class="form-control form-control" value="<?= date('Y-m-d') ?>">
                         </div>
                         <div class="col-12 col-md-4">
                             <label class="form-label">ປະເພດລະບຸຕົວຕົນ : </label>
@@ -282,8 +280,8 @@ $data_id = $y.str_pad($number,5,'0',STR_PAD_LEFT);
                             </select>
                         </div>
                         <div class="col-12 col-md-4">
-                            <label class="form-label">ເລກທີສຳມະໂນຄົວ / ເລກທີບັດປະຈຳໂຕ / ເລກທີປັດສະປອດ : </label>
-                            <input type="text" name="vacancy_check" class="form-control form-control" placeholder="ເລກທີສຳມະໂນຄົວ / ເລກທີບັດປະຈຳໂຕ / ເລກທີປັດສະປອດ" required>
+                            <label class="form-label">ລະຫັດຜູ້ນຳໄຊ້/user name : </label>
+                            <input type="text" name="vacancy_check" class="form-control form-control" placeholder="ລະຫັດຜູ້ນຳໄຊ້/user name" required>
                         </div>
                         <div class="col-12 col-md-4">
                             <label class="form-label">ລະຫັດຜ່ານ (Password) <span class="required">*</span>: </label>

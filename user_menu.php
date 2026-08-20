@@ -17,7 +17,7 @@ $user_info = null;
 
 if (isset($conn) && $conn && !empty($customer_id)) {
     try {
-        $stmt = $conn->prepare("SELECT * FROM data_entry_korea WHERE data_id = :id OR vacancy_check = :id OR phone1 = :id OR passport = :id LIMIT 1");
+        $stmt = $conn->prepare("SELECT * FROM candidate_korea WHERE cid = :id OR vacancy_check = :id OR phone1 = :id OR passport = :id LIMIT 1");
         $stmt->execute([':id' => $customer_id]);
         $user_info = $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
